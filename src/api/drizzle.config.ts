@@ -12,6 +12,7 @@ export default defineConfig({
   schema: "./src/schemas/*",
   dialect: "postgresql",
   dbCredentials: {
+    // biome-ignore lint/style/noNonNullAssertion: It should exist in the env, otherwise it will fail at runtime, which is fine for this case.
     url: process.env.DATABASE_URL_MIGRATION!,
   },
   casing: "snake_case",
