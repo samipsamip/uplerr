@@ -1,0 +1,27 @@
+name: Lint and Test Workflow
+on:
+  push:
+    branches:
+      - main
+      - feature/*
+  pull_request:
+    branches:
+      - main
+jobs:
+  lint-and-test:
+    name: Lint and Test Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+      - name: Install Dependencies
+        run: pnpm install
+      - name: Run lint
+        run: pnpm lint
