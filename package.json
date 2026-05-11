@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "turbo": "^2.9.12"
   },
   "packageManager": "pnpm@10.0.0"
