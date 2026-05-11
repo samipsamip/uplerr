@@ -8,6 +8,15 @@
         "dev":{
             "persistent":true,
             "cache":true
+        },
+        "lint":{
+            "outputs":[]
+        },
+        "format":{
+            "outputs":[]
+        },
+        "check":{
+            "outputs":[]
         }
     }
 }
