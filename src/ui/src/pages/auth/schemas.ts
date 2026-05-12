@@ -22,3 +22,7 @@ export const UserLoginSchema = z.object({
 export const ForgotPasswordSchema = z.object({
   email: z.email(),
 });
+
+export type UserSignupSchemaType = z.infer<typeof UserSignupSchema>;
+export type UserLoginSchemaType = z.infer<typeof UserLoginSchema>;
+export type ForgotPasswordSchemaType = z.infer<typeof ForgotPasswordSchema>;

@@ -1,5 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
+import { authClient } from "@/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,26 +15,53 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { UserLoginSchema } from "@/pages/auth/schemas";
+import {
+	UserLoginSchema,
+	type UserLoginSchemaType,
+} from "@/pages/auth/schemas";
 
 export function LoginForm({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
+	const navigate = useNavigate();
 	const {
 		handleSubmit,
 		register,
-		formState: { errors },
+		formState: { errors, isDirty },
 	} = useForm({
 		resolver: zodResolver(UserLoginSchema),
 	});
+	const [buttonDisabled, setButtonDisabled] = useState(false);
 
-	const handleOnSubmit = (data: any) => console.log(data);
+	const handleOnSubmit = async (data: UserLoginSchemaType) => {
+		await authClient.signIn.email(
+			{
+				email: data.email,
+				password: data.password,
+				callbackURL: "/dashboard",
+			},
+			{
+				onError: (loginResponse) => {
+					toast.error(loginResponse.error.statusText, {
+						description: loginResponse.error.message || "Login failed",
+					});
+				},
+				onSuccess: () => {
+					navigate("/dashboard");
+				},
+			},
+		);
+	};
 	return (
 		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
-					<form className="p-6 md:p-8" onSubmit={handleSubmit(handleOnSubmit)}>
+					<form
+						className="p-6 md:p-8"
+						onSubmit={handleSubmit(handleOnSubmit)}
+						onChange={() => setButtonDisabled(false)}
+					>
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Welcome back 👋</h1>
@@ -74,7 +105,9 @@ export function LoginForm({
 								)}
 							</Field>
 							<Field>
-								<Button type="submit">Login</Button>
+								<Button type="submit" disabled={!isDirty || buttonDisabled}>
+									Login
+								</Button>
 							</Field>
 							<FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
 								Or

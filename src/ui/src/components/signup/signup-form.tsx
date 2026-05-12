@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import { authClient } from "@/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -10,11 +12,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { UserSignupSchema } from "@/pages/auth/schemas";
+import {
+	UserSignupSchema,
+	type UserSignupSchemaType,
+} from "@/pages/auth/schemas";
 export function SignupForm({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
+	const navigate = useNavigate();
 	const {
 		handleSubmit,
 		register,
@@ -23,7 +29,24 @@ export function SignupForm({
 		resolver: zodResolver(UserSignupSchema),
 	});
 
-	const onFormSubmit = (data: any) => console.log(data);
+	const onFormSubmit = async (data: UserSignupSchemaType) => {
+		await authClient.signUp.email(
+			{
+				name: `${data.firstName} ${data.lastName}`,
+				email: data.email,
+				password: data.password,
+			},
+			{
+				onSuccess: () => {
+					navigate("/signup/success", {
+						state: {
+							fromSignup: true,
+						},
+					});
+				},
+			},
+		);
+	};
 	return (
 		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card className="overflow-hidden p-0">
