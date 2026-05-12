@@ -1,3 +1,5 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -8,16 +10,25 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-
+import { UserSignupSchema } from "@/pages/auth/schemas";
 export function SignupForm({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
+	const {
+		handleSubmit,
+		register,
+		formState: { errors },
+	} = useForm({
+		resolver: zodResolver(UserSignupSchema),
+	});
+
+	const onFormSubmit = (data: any) => console.log(data);
 	return (
 		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
-					<form className="p-6 md:p-8">
+					<form className="p-6 md:p-8" onSubmit={handleSubmit(onFormSubmit)}>
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Let's get you started 🚀</h1>
@@ -32,12 +43,27 @@ export function SignupForm({
 										id="firstName"
 										type="text"
 										placeholder="John"
-										required
+										{...register("firstName")}
 									/>
+									{errors.firstName?.message && (
+										<p className="text-xs text-red-500">
+											{errors.firstName?.message}
+										</p>
+									)}
 								</Field>
 								<Field>
 									<FieldLabel htmlFor="lastName">Last name</FieldLabel>
-									<Input id="lastName" type="text" placeholder="Doe" required />
+									<Input
+										id="lastName"
+										type="text"
+										placeholder="Doe"
+										{...register("lastName")}
+									/>
+									{errors.lastName?.message && (
+										<p className="text-xs text-red-500">
+											{errors.lastName?.message}
+										</p>
+									)}
 								</Field>
 							</div>
 							<Field>
@@ -46,18 +72,41 @@ export function SignupForm({
 									id="email"
 									type="email"
 									placeholder="m@example.com"
-									required
+									{...register("email")}
 								/>
+								{errors.email?.message && (
+									<p className="text-xs text-red-500">
+										{errors.email?.message}
+									</p>
+								)}
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="password">Password</FieldLabel>
-								<Input id="password" type="password" required />
+								<Input
+									id="password"
+									type="password"
+									{...register("password")}
+								/>
+								{errors.password?.message && (
+									<p className="text-xs text-red-500">
+										{errors.password?.message}
+									</p>
+								)}
 							</Field>
 							<Field>
 								<FieldLabel htmlFor="confirmPassword">
 									Confirm password
 								</FieldLabel>
-								<Input id="confirmPassword" type="password" required />
+								<Input
+									id="confirmPassword"
+									type="password"
+									{...register("confirmPassword")}
+								/>
+								{errors.confirmPassword?.message && (
+									<p className="text-xs text-red-500">
+										{errors.confirmPassword?.message}
+									</p>
+								)}
 							</Field>
 							<Field>
 								<Button type="submit">Create account 🎊</Button>

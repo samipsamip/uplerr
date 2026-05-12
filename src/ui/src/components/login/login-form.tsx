@@ -1,3 +1,5 @@
+import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -9,22 +11,26 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { UserLoginSchema } from "@/pages/auth/schemas";
 
 export function LoginForm({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
-	const handleOnSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		const formData = new FormData(e.currentTarget);
-		const _email = formData.get("email");
-		const _password = formData.get("password");
-	};
+	const {
+		handleSubmit,
+		register,
+		formState: { errors },
+	} = useForm({
+		resolver: zodResolver(UserLoginSchema),
+	});
+
+	const handleOnSubmit = (data: any) => console.log(data);
 	return (
 		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
-					<form className="p-6 md:p-8" onSubmit={handleOnSubmit}>
+					<form className="p-6 md:p-8" onSubmit={handleSubmit(handleOnSubmit)}>
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Welcome back 👋</h1>
@@ -38,8 +44,13 @@ export function LoginForm({
 									id="email"
 									type="email"
 									placeholder="m@example.com"
-									required
+									{...register("email")}
 								/>
+								{errors.email?.message && (
+									<p className="text-xs text-red-500">
+										{errors.email?.message}
+									</p>
+								)}
 							</Field>
 							<Field>
 								<div className="flex items-center">
@@ -51,7 +62,16 @@ export function LoginForm({
 										Forgot your password?
 									</a>
 								</div>
-								<Input id="password" type="password" required />
+								<Input
+									id="password"
+									type="password"
+									{...register("password")}
+								/>
+								{errors.password?.message && (
+									<p className="text-xs text-red-500">
+										{errors.password?.message}
+									</p>
+								)}
 							</Field>
 							<Field>
 								<Button type="submit">Login</Button>
