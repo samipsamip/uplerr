@@ -21,8 +21,6 @@ importers:
         specifier: ^2.9.12
         version: 2.9.12
 
-  packages/biome-config: {}
-
   src/api:
     dependencies:
       '@hono/node-server':
