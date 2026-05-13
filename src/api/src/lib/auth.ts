@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { account, session, user, verification } from "../schemas/auth-schema";
 import db from "../utils/db";
-import ProductEmail from "../utils/email_utils";
+import { emailSender } from "../utils/email_utils";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -19,6 +19,9 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     sendResetPasswordEmail: true,
     revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      void emailSender.sendResetPasswordEmail(user.name, user.email, url);
+    },
   },
   rateLimit: {
     window: 15 * 60 * 1000, // 15 minutes
@@ -26,9 +29,8 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendOnSignUp: true,
-    sendVerificationEmail: async ({ user, url, token }, _request) => {
-      console.log("I am firing ?");
-      void ProductEmail.sendVerificationEmail(user.email, url, token);
+    sendVerificationEmail: async ({ user, url }) => {
+      void emailSender.sendVerificationEmail(user.name, user.email, url);
     },
   },
 });

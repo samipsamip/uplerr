@@ -122,9 +122,9 @@ export function LoginForm({
 							</Field>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden bg-muted md:block">
+					<div className="relative hidden overflow-hidden bg-muted md:block">
 						<img
-							src="/sidepanel-image.png"
+							src="/login.png"
 							alt="Sidepanel"
 							className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
 						/>

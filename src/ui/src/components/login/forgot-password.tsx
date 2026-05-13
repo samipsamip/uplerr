@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
 import { useForm } from "react-hook-form";
+import { authClient } from "@/auth-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -10,7 +11,10 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ForgotPasswordSchema } from "@/pages/auth/schemas";
+import {
+	ForgotPasswordSchema,
+	type ForgotPasswordSchemaType,
+} from "@/pages/auth/schemas";
 
 export function ForgotPasswordForm({
 	className,
@@ -23,7 +27,11 @@ export function ForgotPasswordForm({
 	} = useForm({
 		resolver: zodResolver(ForgotPasswordSchema),
 	});
-	const _handleOnSubmit = (data: any) => console.log(data);
+	const _handleOnSubmit = (data: ForgotPasswordSchemaType) => {
+		authClient.requestPasswordReset({
+			email: data.email,
+		});
+	};
 	return (
 		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card className="overflow-hidden p-0">
@@ -61,9 +69,9 @@ export function ForgotPasswordForm({
 							</FieldDescription>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden bg-muted md:block">
+					<div className="relative hidden overflow-hidden bg-muted md:block">
 						<img
-							src="/sidepanel-image.png"
+							src="/forgot-password.png"
 							alt="Sidepanel"
 							className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
 						/>
