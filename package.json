@@ -1,22 +1,28 @@
 {
-  "name": "uppler",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "start:api": "turbo run start --filter=api",
-    "start:web": "turbo run start --filter=ui"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "turbo": "^2.9.12"
-  },
-  "packageManager": "pnpm@10.0.0"
+	"name": "uppler",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"lint": "turbo run lint",
+		"test": "turbo run test",
+		"start:api": "turbo run start --filter=api",
+		"start:web": "turbo run start --filter=ui",
+		"prepare": "husky"
+	},
+	"lint-staged": {
+		"*.{ts,tsx,js,jsx,json,css}": "biome check --write --no-errors-on-unmatched"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.15",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.0.4",
+		"turbo": "^2.9.12"
+	},
+	"packageManager": "pnpm@10.0.0"
 }
