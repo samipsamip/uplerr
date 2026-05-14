@@ -8,7 +8,6 @@ export default class ProductEmail {
 		email: string,
 		url: string,
 	): Promise<void> {
-		console.log(fullName, email, url);
 		const { data, error } = await this.emailClient.emails.send({
 			to: email,
 			template: {
@@ -23,10 +22,23 @@ export default class ProductEmail {
 		//TO DO : Add error handling and logging
 	}
 	async sendResetPasswordEmail(
-		_fullName: string,
-		_email: string,
-		_url: string,
-	): Promise<void> {}
+		fullName: string,
+		email: string,
+		url: string,
+	): Promise<void> {
+		const { data, error } = await this.emailClient.emails.send({
+			to: email,
+			template: {
+				id: EMAIL_TEMPLATE_ID.resetPassword,
+				variables: {
+					resetPasswordURL: url,
+					fullName: fullName,
+				},
+			},
+		});
+		console.log(error);
+		//TO DO : Add error handling and logging
+	}
 }
 
 export const emailSender = new ProductEmail(
