@@ -8,7 +8,7 @@ export default class ProductEmail {
 		email: string,
 		url: string,
 	): Promise<void> {
-		const { data, error } = await this.emailClient.emails.send({
+		const { error } = await this.emailClient.emails.send({
 			to: email,
 			template: {
 				id: EMAIL_TEMPLATE_ID.welcomeEmail,
@@ -26,7 +26,7 @@ export default class ProductEmail {
 		email: string,
 		url: string,
 	): Promise<void> {
-		const { data, error } = await this.emailClient.emails.send({
+		const { error } = await this.emailClient.emails.send({
 			to: email,
 			template: {
 				id: EMAIL_TEMPLATE_ID.resetPassword,
