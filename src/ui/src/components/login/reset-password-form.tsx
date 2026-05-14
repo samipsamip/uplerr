@@ -38,6 +38,9 @@ export function ResetPasswordForm({
 					<p className="text-balance text-sm text-muted-foreground">
 						This link is invalid or has expired. Please request a new one.
 					</p>
+					<a href="/" className="text-sm text-primary">
+						Go back to home
+					</a>
 				</CardContent>
 			</Card>
 		);
