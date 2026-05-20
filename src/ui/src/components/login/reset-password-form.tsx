@@ -1,5 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { authClient } from '@/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -24,8 +28,10 @@ export function ResetPasswordForm({
 	const currentLocation = window.location.search;
 	const token = new URLSearchParams(currentLocation).get('token');
 	const errorToken = new URLSearchParams(currentLocation).get('error');
+	const navigate = useNavigate();
+	const [hasTokenError, setHasTokenError] = useState(false);
 
-	if (!token || errorToken) {
+	if (!token || errorToken || hasTokenError) {
 		return (
 			<Card className="overflow-hidden p-0">
 				<CardContent className="flex flex-col items-center gap-4 p-8 text-center">
@@ -46,8 +52,26 @@ export function ResetPasswordForm({
 		);
 	}
 
-	const onFormSubmit = (_data: ResetPasswordSchemaType) => {
-		// Better Auth implementation left to user
+	const onFormSubmit = async (data: ResetPasswordSchemaType) => {
+		const { password: newPassword } = data;
+		await authClient.resetPassword(
+			{
+				newPassword,
+				token,
+			},
+			{
+				onSuccess: () => {
+					toast.success(
+						'Password reset successful! You can now log in with your new password.',
+					);
+					navigate('/');
+				},
+				onError: () => {
+					toast.error(`Something went wrong, please try again later!`);
+					setHasTokenError(true);
+				},
+			},
+		);
 	};
 
 	return (
@@ -91,7 +115,9 @@ export function ResetPasswordForm({
 								)}
 							</Field>
 							<Field>
-								<Button type="submit">Reset password 🎉</Button>
+								<Button type="submit" disabled={Object.keys(errors).length > 0}>
+									Reset password 🎉
+								</Button>
 							</Field>
 						</FieldGroup>
 					</form>

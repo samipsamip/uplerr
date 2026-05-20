@@ -1,25 +1,28 @@
-import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
-import { useForm } from "react-hook-form";
-import { authClient } from "@/auth-client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { authClient } from '@/auth-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
 	Field,
 	FieldDescription,
 	FieldGroup,
 	FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
 	ForgotPasswordSchema,
 	type ForgotPasswordSchemaType,
-} from "@/pages/auth/schemas";
+} from '@/pages/auth/schemas';
 
 export function ForgotPasswordForm({
 	className,
 	...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
 	const {
 		handleSubmit,
 		register,
@@ -27,16 +30,44 @@ export function ForgotPasswordForm({
 	} = useForm({
 		resolver: zodResolver(ForgotPasswordSchema),
 	});
-	const _handleOnSubmit = (data: ForgotPasswordSchemaType) => {
-		authClient.requestPasswordReset({
-			email: data.email,
-		});
+	const navigate = useNavigate();
+	const [buttonDisabled, setButtonDisabled] = useState(false);
+	const handleOnSubmit = (data: ForgotPasswordSchemaType) => {
+		authClient.requestPasswordReset(
+			{
+				email: data.email,
+				redirectTo: 'http://localhost:5173/reset-password',
+			},
+			{
+				onSuccess: () => {
+					setButtonDisabled(true);
+					toast.success(
+						`Please check your email for password reset instructions`,
+					);
+					navigate('/forgot-password/confirmation', {
+						state: { fromForgotPassword: true },
+					});
+				},
+				onError: () => {
+					toast.error(`Something went wrong, please try again later!`);
+				},
+			},
+		);
 	};
+
+	const handleFieldChanges = () => {
+		setButtonDisabled(false);
+	};
+
 	return (
-		<div className={cn("flex flex-col gap-6", className)} {...props}>
+		<div className={cn('flex flex-col gap-6', className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
-					<form className="p-6 md:p-8" onSubmit={handleSubmit(_handleOnSubmit)}>
+					<form
+						className="p-6 md:p-8"
+						onSubmit={handleSubmit(handleOnSubmit)}
+						onChange={handleFieldChanges}
+					>
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Forgot your password? 😅</h1>
@@ -50,7 +81,7 @@ export function ForgotPasswordForm({
 									id="email"
 									type="email"
 									placeholder="m@example.com"
-									{...register("email")}
+									{...register('email')}
 								/>
 								{errors.email?.message && (
 									<p className="text-xs text-red-500">
@@ -59,10 +90,12 @@ export function ForgotPasswordForm({
 								)}
 							</Field>
 							<Field>
-								<Button type="submit">Send reset link 📬</Button>
+								<Button type="submit" disabled={buttonDisabled}>
+									Send reset link 📬
+								</Button>
 							</Field>
 							<FieldDescription className="text-center">
-								Remember your password?{" "}
+								Remember your password?{' '}
 								<a href="/" className="underline underline-offset-4">
 									Back to login 🔑
 								</a>

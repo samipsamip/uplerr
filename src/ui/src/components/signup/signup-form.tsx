@@ -1,25 +1,26 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
-import { authClient } from "@/auth-client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { authClient } from '@/auth-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
 	Field,
 	FieldDescription,
 	FieldGroup,
 	FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
 	UserSignupSchema,
 	type UserSignupSchemaType,
-} from "@/pages/auth/schemas";
+} from '@/pages/auth/schemas';
 export function SignupForm({
 	className,
 	...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
 	const _navigate = useNavigate();
 	const {
 		handleSubmit,
@@ -35,19 +36,22 @@ export function SignupForm({
 				name: `${data.firstName} ${data.lastName}`,
 				email: data.email,
 				password: data.password,
-				callbackURL: "http://localhost:5173/dashboard",
+				callbackURL: 'http://localhost:5173/dashboard',
 			},
 			{
 				onSuccess: () => {
-					_navigate("/signup/success", {
+					_navigate('/signup/success', {
 						state: { fromSignup: true },
 					});
+				},
+				onError: () => {
+					toast.error(`Signup failed , please try again later!`);
 				},
 			},
 		);
 	};
 	return (
-		<div className={cn("flex flex-col gap-6", className)} {...props}>
+		<div className={cn('flex flex-col gap-6', className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
 					<form className="p-6 md:p-8" onSubmit={handleSubmit(onFormSubmit)}>
@@ -65,7 +69,7 @@ export function SignupForm({
 										id="firstName"
 										type="text"
 										placeholder="John"
-										{...register("firstName")}
+										{...register('firstName')}
 									/>
 									{errors.firstName?.message && (
 										<p className="text-xs text-red-500">
@@ -79,7 +83,7 @@ export function SignupForm({
 										id="lastName"
 										type="text"
 										placeholder="Doe"
-										{...register("lastName")}
+										{...register('lastName')}
 									/>
 									{errors.lastName?.message && (
 										<p className="text-xs text-red-500">
@@ -94,7 +98,7 @@ export function SignupForm({
 									id="email"
 									type="email"
 									placeholder="m@example.com"
-									{...register("email")}
+									{...register('email')}
 								/>
 								{errors.email?.message && (
 									<p className="text-xs text-red-500">
@@ -107,7 +111,7 @@ export function SignupForm({
 								<Input
 									id="password"
 									type="password"
-									{...register("password")}
+									{...register('password')}
 								/>
 								{errors.password?.message && (
 									<p className="text-xs text-red-500">
@@ -122,7 +126,7 @@ export function SignupForm({
 								<Input
 									id="confirmPassword"
 									type="password"
-									{...register("confirmPassword")}
+									{...register('confirmPassword')}
 								/>
 								{errors.confirmPassword?.message && (
 									<p className="text-xs text-red-500">
@@ -134,7 +138,7 @@ export function SignupForm({
 								<Button type="submit">Create account 🎊</Button>
 							</Field>
 							<FieldDescription className="text-center">
-								Already have an account?{" "}
+								Already have an account?{' '}
 								<a href="/" className="underline underline-offset-4">
 									Login 👋
 								</a>
