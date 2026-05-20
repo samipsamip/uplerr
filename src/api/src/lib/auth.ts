@@ -1,10 +1,14 @@
 import { betterAuth } from "better-auth";
-import ProductEmail from "../utils/email_utils";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { account, session, user, verification } from "../schemas/auth-schema";
 import db from "../utils/db";
+import { emailSender } from "../utils/email_utils";
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg" }),
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: { user, session, account, verification },
+  }),
   baseURL: process.env.AUTH_BASE_URL ?? "http://localhost:3000/",
   trustedOrigins: process.env.TRUSTED_ORIGINS
     ? process.env.TRUSTED_ORIGINS.split(",")
@@ -14,6 +18,10 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     requireEmailVerification: true,
     sendResetPasswordEmail: true,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      void emailSender.sendResetPasswordEmail(user.name, user.email, url);
+    },
   },
   rateLimit: {
     window: 15 * 60 * 1000, // 15 minutes
@@ -21,9 +29,8 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendOnSignUp: true,
-    sendVerificationEmail: async ({ user, url, token }, request) => {
-      console.log("I am firing ?");
-      void ProductEmail.sendVerificationEmail(user.email, url, token);
+    sendVerificationEmail: async ({ user, url }) => {
+      void emailSender.sendVerificationEmail(user.name, user.email, url);
     },
   },
 });
