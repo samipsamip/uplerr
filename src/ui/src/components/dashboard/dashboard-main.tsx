@@ -162,8 +162,8 @@ export default function DashboardMain() {
 
 				{/* Onboarding — hidden once all steps are complete */}
 				{!onboardingComplete && (
-					<Card className="overflow-hidden rounded-2xl border border-border/50 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-						{/* Accent progress strip */}
+					<div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+						{/* Accent progress strip — flush with top edge */}
 						<div className="h-1 w-full bg-muted">
 							<div
 								className="h-full bg-accent transition-all"
@@ -172,7 +172,7 @@ export default function DashboardMain() {
 								}}
 							/>
 						</div>
-						<CardContent className="flex flex-col gap-5 py-6">
+						<div className="flex flex-col gap-5 px-6 py-6">
 							<div className="flex items-start justify-between gap-4">
 								<div>
 									<p className="font-semibold">Get started with Uplerr</p>
@@ -231,8 +231,8 @@ export default function DashboardMain() {
 									Paste your first job listing
 								</NavLink>
 							</Button>
-						</CardContent>
-					</Card>
+						</div>
+					</div>
 				)}
 
 				{/* Active roadmaps */}
