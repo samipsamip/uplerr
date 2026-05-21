@@ -8,7 +8,8 @@ import {
 	LogOut,
 	Sparkles,
 } from 'lucide-react';
-
+import { useNavigate } from 'react-router';
+import { authClient } from '@/auth-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
 	DropdownMenu,
@@ -46,6 +47,16 @@ export function NavUser({
 }) {
 	const { isMobile } = useSidebar();
 	const initials = getInitials(user.name);
+	const navigate = useNavigate();
+	const logOutUser = () => {
+		authClient.signOut({
+			fetchOptions: {
+				onSuccess: () => {
+					navigate('/login');
+				},
+			},
+		});
+	};
 
 	return (
 		<SidebarMenu>
@@ -112,7 +123,7 @@ export function NavUser({
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem>
+						<DropdownMenuItem onClick={logOutUser}>
 							<LogOut />
 							Log out
 						</DropdownMenuItem>

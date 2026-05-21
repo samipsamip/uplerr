@@ -1,29 +1,29 @@
-import { zodResolver } from "@hookform/resolvers/zod/dist/zod.js";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
-import { authClient } from "@/auth-client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { authClient } from '@/auth-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
 	Field,
 	FieldDescription,
 	FieldGroup,
 	FieldLabel,
 	FieldSeparator,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
 	UserLoginSchema,
 	type UserLoginSchemaType,
-} from "@/pages/auth/schemas";
+} from '@/pages/auth/schemas';
 
 export function LoginForm({
 	className,
 	...props
-}: React.ComponentProps<"div">) {
+}: React.ComponentProps<'div'>) {
 	const navigate = useNavigate();
 	const {
 		handleSubmit,
@@ -39,22 +39,22 @@ export function LoginForm({
 			{
 				email: data.email,
 				password: data.password,
-				callbackURL: "/dashboard",
+				callbackURL: '/',
 			},
 			{
 				onError: (loginResponse) => {
 					toast.error(loginResponse.error.statusText, {
-						description: loginResponse.error.message || "Login failed",
+						description: loginResponse.error.message || 'Login failed',
 					});
 				},
 				onSuccess: () => {
-					navigate("/dashboard");
+					navigate('/dashboard');
 				},
 			},
 		);
 	};
 	return (
-		<div className={cn("flex flex-col gap-6", className)} {...props}>
+		<div className={cn('flex flex-col gap-6', className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
 					<form
@@ -75,7 +75,7 @@ export function LoginForm({
 									id="email"
 									type="email"
 									placeholder="m@example.com"
-									{...register("email")}
+									{...register('email')}
 								/>
 								{errors.email?.message && (
 									<p className="text-xs text-red-500">
@@ -96,7 +96,7 @@ export function LoginForm({
 								<Input
 									id="password"
 									type="password"
-									{...register("password")}
+									{...register('password')}
 								/>
 								{errors.password?.message && (
 									<p className="text-xs text-red-500">
@@ -114,7 +114,7 @@ export function LoginForm({
 							</FieldSeparator>
 							<Field>
 								<FieldDescription className="text-center">
-									Don&apos;t have an account?{" "}
+									Don&apos;t have an account?{' '}
 									<a href="/signup" className="underline underline-offset-4">
 										Sign up ✨
 									</a>
