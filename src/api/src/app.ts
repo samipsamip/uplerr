@@ -31,7 +31,12 @@ export function buildApp() {
 		await next();
 	});
 	app.get('/me', authMiddleWare, (c) => {
-		return c.json(201);
+		return c.json(
+			{
+				...c.get('user'),
+			},
+			200,
+		);
 	});
 	app.get('/', (c) => c.text('Hello Hono!'));
 
