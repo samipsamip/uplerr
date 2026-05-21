@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Briefcase, LayoutDashboard, Route, Zap } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router';
+import useAuthUser from '@/hooks/use-auth-user';
 import {
 	Sidebar,
 	SidebarContent,
@@ -15,12 +16,6 @@ import {
 	useSidebar,
 } from '../ui/sidebar';
 import { NavUser } from './user-navigation';
-
-const user = {
-	name: 'Samip',
-	email: 'later@scooter.com',
-	avatar: '',
-};
 
 const navItems: {
 	label: string;
@@ -50,7 +45,7 @@ export default function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
 	const location = useLocation();
 	const { isMobile, setOpenMobile } = useSidebar();
-
+	const { name, email, image } = useAuthUser();
 	return (
 		<Sidebar {...props}>
 			<SidebarHeader>
@@ -123,7 +118,7 @@ export default function AppSidebar({
 			</SidebarContent>
 
 			<SidebarFooter>
-				<NavUser user={user} />
+				<NavUser user={{ name, email, avatar: image || undefined }} />
 			</SidebarFooter>
 		</Sidebar>
 	);

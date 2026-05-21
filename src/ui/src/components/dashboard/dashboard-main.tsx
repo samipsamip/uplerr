@@ -3,6 +3,7 @@ import { NavLink } from 'react-router';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import useAuthUser from '@/hooks/use-auth-user';
 import { cn } from '@/lib/utils';
 import { TopBar } from './top-bar';
 
@@ -117,12 +118,15 @@ function getDateString() {
 		day: 'numeric',
 	});
 }
-
+const getFirstName = (fullName: string) => {
+	return fullName.split(' ')[0];
+};
 export default function DashboardMain() {
+	const { name } = useAuthUser();
 	return (
 		<>
 			<TopBar
-				title={`${getGreeting()}, Samip`}
+				title={`${getGreeting()}, ${getFirstName(name || '')} 👋`}
 				description={getDateString()}
 				action={
 					<Button size="sm" asChild className="gap-1.5">

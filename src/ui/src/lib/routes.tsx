@@ -1,6 +1,11 @@
 import ky from 'ky';
 import type { RouteObject } from 'react-router';
-import { createBrowserRouter, Outlet, redirect } from 'react-router';
+import {
+	createBrowserRouter,
+	Outlet,
+	redirect,
+	useLoaderData,
+} from 'react-router';
 
 import { Fallback } from '@/components/ui/fallback';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
@@ -18,11 +23,12 @@ import ErrorPage from '@/pages/ErrorPage';
 
 const getSession = async () => {
 	try {
-		const response = await ky.get('http://localhost:3000/me', {
-			credentials: 'include',
-		});
-
-		return response.status === 200;
+		const response = await ky
+			.get('http://localhost:3000/me', {
+				credentials: 'include',
+			})
+			.json();
+		return response;
 	} catch {
 		return false;
 	}
@@ -33,7 +39,6 @@ const getSession = async () => {
  */
 const rootLoader = async () => {
 	const authenticated = await getSession();
-
 	if (authenticated) {
 		throw redirect('/dashboard');
 	}
@@ -46,12 +51,10 @@ const rootLoader = async () => {
  */
 const requireAuth = async () => {
 	const authenticated = await getSession();
-
 	if (!authenticated) {
 		throw redirect('/login');
 	}
-
-	return null;
+	return authenticated;
 };
 
 /**
@@ -72,7 +75,7 @@ const requireGuest = async () => {
 /* ---------------------------------- */
 
 function ProtectedLayout() {
-	return <Outlet />;
+	return <Outlet context={useLoaderData()} />;
 }
 
 const publicRoutes: RouteObject[] = [
