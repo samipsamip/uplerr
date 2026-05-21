@@ -104,7 +104,7 @@ export default function RoadmapsMain() {
 				<div className="flex items-center gap-3">
 					<div className="relative flex-1">
 						<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input placeholder="Search roadmaps..." className="pl-9" />
+						<Input placeholder="Search roadmaps..." className="pl-9 bg-white" />
 					</div>
 					{/* Filter pills — wire up to state when ready */}
 					<div className="flex gap-2">
