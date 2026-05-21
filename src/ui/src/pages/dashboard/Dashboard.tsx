@@ -1,3 +1,10 @@
+import DashboardMain from '@/components/dashboard/dashboard-main';
+import Layout from './Layout';
+
 export default function Dashboard() {
-	return <div>Dashboard</div>;
+	return (
+		<Layout>
+			<DashboardMain />
+		</Layout>
+	);
 }

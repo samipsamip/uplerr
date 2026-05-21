@@ -12,6 +12,8 @@ import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
 
 import Dashboard from '@/pages/dashboard/Dashboard';
+import Roadmaps from '@/pages/dashboard/Roadmaps';
+import Skills from '@/pages/dashboard/Skills';
 import ErrorPage from '@/pages/ErrorPage';
 
 const getSession = async () => {
@@ -116,6 +118,14 @@ const privateRoutes: RouteObject[] = [
 				path: 'dashboard',
 				index: true,
 				Component: Dashboard,
+			},
+			{
+				path: 'roadmaps',
+				Component: Roadmaps,
+			},
+			{
+				path: 'skills',
+				Component: Skills,
 			},
 		],
 	},
