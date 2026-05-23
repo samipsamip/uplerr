@@ -1,5 +1,6 @@
 'use client';
 
+import { useNavigate } from 'react-router';
 import {
 	BadgeCheck,
 	Bell,
@@ -8,7 +9,7 @@ import {
 	LogOut,
 	Sparkles,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+
 import { authClient } from '@/auth-client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {

@@ -1,9 +1,11 @@
 import { ArrowRight, Building2, Clock, Plus, Search } from 'lucide-react';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+
 import { TopBar } from './top-bar';
 
 // --- Types — replace with API response shapes when ready ---
@@ -103,8 +105,8 @@ export default function RoadmapsMain() {
 				{/* Search + filters */}
 				<div className="flex items-center gap-3">
 					<div className="relative flex-1">
-						<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input placeholder="Search roadmaps..." className="pl-9 bg-white" />
+						<Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
+						<Input placeholder="Search roadmaps..." className="bg-white pl-9" />
 					</div>
 					{/* Filter pills — wire up to state when ready */}
 					<div className="flex gap-2">
@@ -112,7 +114,7 @@ export default function RoadmapsMain() {
 							<button
 								key={s}
 								type="button"
-								className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground"
+								className="border-border text-muted-foreground hover:border-border/80 hover:text-foreground flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors"
 							>
 								<span
 									className={cn(
@@ -135,13 +137,13 @@ export default function RoadmapsMain() {
 						return (
 							<Card
 								key={roadmap.id}
-								className="group flex flex-col rounded-xl border border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
+								className="border-border/60 group flex flex-col rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
 							>
 								<CardContent className="flex flex-1 flex-col gap-4 p-5">
 									{/* Company + title */}
 									<div className="flex items-start justify-between gap-2">
 										<div className="min-w-0">
-											<p className="text-xs text-muted-foreground">
+											<p className="text-muted-foreground text-xs">
 												{roadmap.company}
 											</p>
 											<h3 className="mt-0.5 text-base font-medium leading-snug">
@@ -149,14 +151,14 @@ export default function RoadmapsMain() {
 											</h3>
 										</div>
 										<Avatar className="size-9 shrink-0 rounded-xl">
-											<AvatarFallback className="rounded-xl bg-muted text-xs font-medium text-muted-foreground">
+											<AvatarFallback className="bg-muted text-muted-foreground rounded-xl text-xs font-medium">
 												{roadmap.company[0]}
 											</AvatarFallback>
 										</Avatar>
 									</div>
 
 									{/* Meta row */}
-									<div className="flex items-center gap-3 text-xs text-muted-foreground">
+									<div className="text-muted-foreground flex items-center gap-3 text-xs">
 										<span className="flex items-center gap-1">
 											<Building2 className="size-3" />
 											{roadmap.company}
@@ -173,9 +175,9 @@ export default function RoadmapsMain() {
 											<span className="text-muted-foreground">Progress</span>
 											<span className="font-medium">{roadmap.progress}%</span>
 										</div>
-										<div className="h-2 w-full rounded-full bg-muted">
+										<div className="bg-muted h-2 w-full rounded-full">
 											<div
-												className="h-2 rounded-full bg-accent transition-all"
+												className="bg-accent h-2 rounded-full transition-all"
 												style={{ width: `${roadmap.progress}%` }}
 											/>
 										</div>
@@ -184,7 +186,7 @@ export default function RoadmapsMain() {
 									{/* Footer */}
 									<div className="mt-auto flex items-center justify-between">
 										<div className="flex items-center gap-3">
-											<span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+											<span className="text-muted-foreground flex items-center gap-1.5 text-xs">
 												<span
 													className={cn(
 														'size-1.5 rounded-full',
@@ -194,7 +196,7 @@ export default function RoadmapsMain() {
 												{statusConfig.label}
 											</span>
 											{gapToClose > 0 && (
-												<span className="text-xs text-muted-foreground">
+												<span className="text-muted-foreground text-xs">
 													{gapToClose} to learn
 												</span>
 											)}

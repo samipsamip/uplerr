@@ -1,7 +1,8 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { authClient } from '@/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,7 +59,7 @@ export function SignupForm({
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Let's get you started 🚀</h1>
-								<p className="text-balance text-sm text-muted-foreground">
+								<p className="text-muted-foreground text-balance text-sm">
 									Create your account and let&apos;s build your lesson plan! 🎉
 								</p>
 							</div>
@@ -145,7 +146,7 @@ export function SignupForm({
 							</FieldDescription>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden overflow-hidden bg-muted md:block">
+					<div className="bg-muted relative hidden overflow-hidden md:block">
 						<img
 							src="/sign-up.png"
 							alt="Sidepanel"

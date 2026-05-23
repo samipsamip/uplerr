@@ -1,8 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
+
 import { authClient } from '@/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -71,7 +72,7 @@ export function ForgotPasswordForm({
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Forgot your password? 😅</h1>
-								<p className="text-balance text-sm text-muted-foreground">
+								<p className="text-muted-foreground text-balance text-sm">
 									No worries, it happens to the best of us! 🤝
 								</p>
 							</div>
@@ -102,7 +103,7 @@ export function ForgotPasswordForm({
 							</FieldDescription>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden overflow-hidden bg-muted md:block">
+					<div className="bg-muted relative hidden overflow-hidden md:block">
 						<img
 							src="/forgot-password.png"
 							alt="Sidepanel"

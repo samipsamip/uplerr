@@ -6,6 +6,7 @@ import {
 	uuid,
 	varchar,
 } from 'drizzle-orm/pg-core';
+
 import { user } from './auth-schema';
 
 export const profileSchema = pgTable('user_profiles', {

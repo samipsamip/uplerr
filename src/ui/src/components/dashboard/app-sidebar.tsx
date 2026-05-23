@@ -1,7 +1,9 @@
+import { NavLink, useLocation } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
 import { Briefcase, LayoutDashboard, Route, Zap } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router';
+
 import useAuthUser from '@/hooks/use-auth-user';
+
 import {
 	Sidebar,
 	SidebarContent,
@@ -53,12 +55,12 @@ export default function AppSidebar({
 					<SidebarMenuItem>
 						<SidebarMenuButton size="lg" asChild>
 							<NavLink to="/dashboard">
-								<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-foreground text-background">
+								<div className="bg-foreground text-background flex aspect-square size-8 items-center justify-center rounded-lg">
 									<Zap className="size-4" />
 								</div>
 								<div className="flex flex-col gap-0.5 leading-none">
 									<span className="font-semibold tracking-tight">Uplerr</span>
-									<span className="text-xs text-muted-foreground">
+									<span className="text-muted-foreground text-xs">
 										Learning. Simplified.
 									</span>
 								</div>
@@ -83,7 +85,7 @@ export default function AppSidebar({
 											asChild={!!item.href}
 											isActive={isActive}
 											tooltip={item.label}
-											className="h-10 rounded-xl data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground"
+											className="data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground h-10 rounded-xl"
 											onClick={() => {
 												item.onSelect?.();
 												if (isMobile) setOpenMobile(false);

@@ -1,6 +1,7 @@
-import { FileText, Loader2, ShieldCheck, Upload } from 'lucide-react';
 import { useState } from 'react';
+import { FileText, Loader2, ShieldCheck, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
 import { useUpdateResume } from '@/query/skills.query';
@@ -67,19 +68,19 @@ export function CvCard({ cvFile }: CvCardProps) {
 			/>
 			<div className="flex items-center justify-between gap-4">
 				<div className="flex items-center gap-3">
-					<div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/[0.08]">
-						<FileText className="size-5 text-accent" />
+					<div className="bg-accent/[0.08] flex size-10 shrink-0 items-center justify-center rounded-xl">
+						<FileText className="text-accent size-5" />
 					</div>
 					<div>
 						<p className="text-base font-medium">{cvFile.name}</p>
-						<p className="mt-0.5 text-xs text-muted-foreground">
+						<p className="text-muted-foreground mt-0.5 text-xs">
 							Uploaded {cvFile.uploadedAt} &middot; {cvFile.skillsExtracted}{' '}
 							skills extracted
 						</p>
 					</div>
 				</div>
 				<div className="flex shrink-0 items-center gap-3">
-					<span className="flex items-center gap-1 text-xs text-accent">
+					<span className="text-accent flex items-center gap-1 text-xs">
 						<ShieldCheck className="size-4" />
 						Verified
 					</span>
@@ -95,14 +96,14 @@ export function CvCard({ cvFile }: CvCardProps) {
 			</div>
 
 			{selectedFile && (
-				<div className="mt-3 flex items-center justify-between gap-4 border-t border-border/40 pt-3">
+				<div className="border-border/40 mt-3 flex items-center justify-between gap-4 border-t pt-3">
 					<div className="flex items-center gap-3">
-						<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-							<FileText className="size-4 text-muted-foreground" />
+						<div className="bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg">
+							<FileText className="text-muted-foreground size-4" />
 						</div>
 						<div>
 							<p className="text-sm font-medium">{selectedFile.name}</p>
-							<p className="mt-0.5 text-xs text-muted-foreground">
+							<p className="text-muted-foreground mt-0.5 text-xs">
 								{formatFileSize(selectedFile.size)} · Ready to replace
 							</p>
 						</div>

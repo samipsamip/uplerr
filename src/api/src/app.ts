@@ -1,4 +1,5 @@
 import { cors } from 'hono/cors';
+
 import profileRoute from './components/profiles/profiles.route';
 import { auth } from './lib/auth';
 import { factory } from './lib/factory';

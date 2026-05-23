@@ -1,4 +1,5 @@
 import { ArrowRight, Plus } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -68,7 +69,7 @@ export function SkillsList() {
 			<div className="flex items-center justify-between">
 				<h2 className="text-xl font-semibold tracking-tight">
 					Your Skills{' '}
-					<span className="ml-1 text-sm font-normal text-muted-foreground">
+					<span className="text-muted-foreground ml-1 text-sm font-normal">
 						({skills.length})
 					</span>
 				</h2>
@@ -81,10 +82,10 @@ export function SkillsList() {
 			{Object.entries(skillsByCategory).map(([category, categorySkills]) => (
 				<div key={category} className="flex flex-col gap-3">
 					<div className="flex items-center gap-2">
-						<span className="text-xs font-medium text-muted-foreground">
+						<span className="text-muted-foreground text-xs font-medium">
 							{category}
 						</span>
-						<div className="h-px flex-1 bg-border" />
+						<div className="bg-border h-px flex-1" />
 					</div>
 					<div className="flex flex-wrap gap-2">
 						{categorySkills.map((skill) => {
@@ -92,11 +93,11 @@ export function SkillsList() {
 							return (
 								<div
 									key={skill.id}
-									className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm"
+									className="border-border bg-card flex items-center gap-2 rounded-xl border px-3 py-2 text-sm"
 								>
 									<SkillLevelBars level={skill.level} />
 									<span className="font-medium">{skill.name}</span>
-									<span className="text-xs text-muted-foreground">
+									<span className="text-muted-foreground text-xs">
 										{config.label}
 									</span>
 								</div>
@@ -104,7 +105,7 @@ export function SkillsList() {
 						})}
 						<button
 							type="button"
-							className="flex items-center gap-1.5 rounded-xl border border-dashed border-muted-foreground/30 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-muted-foreground/60 hover:text-foreground"
+							className="border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground flex items-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-sm transition-colors"
 						>
 							<Plus className="size-3.5" />
 							Add

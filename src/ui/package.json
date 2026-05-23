@@ -6,9 +6,10 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsc -b && vite build",
-		"lint": "biome lint --write .",
-		"format": "biome format --write .",
-		"check": "biome check --write . --error-on-warnings",
+		"lint": "eslint . --fix",
+		"typecheck": "tsc -b --noEmit",
+		"format": "prettier --write .",
+		"check": "eslint . && prettier --check .",
 		"preview": "vite preview"
 	},
 	"dependencies": {

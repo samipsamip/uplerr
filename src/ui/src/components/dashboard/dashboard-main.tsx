@@ -1,10 +1,12 @@
-import { ArrowRight, Check, Plus, Route, TrendingUp, Zap } from 'lucide-react';
 import { NavLink } from 'react-router';
+import { ArrowRight, Check, Plus, Route, TrendingUp, Zap } from 'lucide-react';
+
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import useAuthUser from '@/hooks/use-auth-user';
 import { cn } from '@/lib/utils';
+
 import { TopBar } from './top-bar';
 
 // --- Types — replace with API response shapes when ready ---
@@ -144,20 +146,20 @@ export default function DashboardMain() {
 					{stats.map((stat) => (
 						<Card
 							key={stat.label}
-							className="rounded-xl border border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+							className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
 						>
 							<CardContent className="flex items-start justify-between gap-3 p-5">
 								<div className="flex flex-col gap-1">
-									<p className="text-xs text-muted-foreground">{stat.label}</p>
+									<p className="text-muted-foreground text-xs">{stat.label}</p>
 									<p className="text-3xl font-semibold tracking-tight">
 										{stat.value}
 									</p>
-									<p className="mt-0.5 text-xs text-muted-foreground">
+									<p className="text-muted-foreground mt-0.5 text-xs">
 										{stat.sub}
 									</p>
 								</div>
-								<div className="shrink-0 rounded-xl bg-accent/[0.08] p-2.5">
-									<stat.icon className="size-5 text-accent" />
+								<div className="bg-accent/[0.08] shrink-0 rounded-xl p-2.5">
+									<stat.icon className="text-accent size-5" />
 								</div>
 							</CardContent>
 						</Card>
@@ -166,11 +168,11 @@ export default function DashboardMain() {
 
 				{/* Onboarding — hidden once all steps are complete */}
 				{!onboardingComplete && (
-					<div className="overflow-hidden rounded-2xl border border-border/50 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+					<div className="border-border/50 bg-card overflow-hidden rounded-2xl border shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
 						{/* Accent progress strip — flush with top edge */}
-						<div className="h-1 w-full bg-muted">
+						<div className="bg-muted h-1 w-full">
 							<div
-								className="h-full bg-accent transition-all"
+								className="bg-accent h-full transition-all"
 								style={{
 									width: `${(completedSteps / onboardingSteps.length) * 100}%`,
 								}}
@@ -180,11 +182,11 @@ export default function DashboardMain() {
 							<div className="flex items-start justify-between gap-4">
 								<div>
 									<p className="font-semibold">Get started with Uplerr</p>
-									<p className="mt-0.5 text-sm text-muted-foreground">
+									<p className="text-muted-foreground mt-0.5 text-sm">
 										Complete these steps to generate your first roadmap.
 									</p>
 								</div>
-								<span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+								<span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium">
 									{completedSteps} / {onboardingSteps.length}
 								</span>
 							</div>
@@ -198,13 +200,13 @@ export default function DashboardMain() {
 													'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
 													step.done
 														? 'bg-accent text-white'
-														: 'border-2 border-muted-foreground/25 text-muted-foreground',
+														: 'border-muted-foreground/25 text-muted-foreground border-2',
 												)}
 											>
 												{step.done ? <Check className="size-3.5" /> : i + 1}
 											</div>
 											{i < onboardingSteps.length - 1 && (
-												<div className="my-1 w-px flex-1 bg-border" />
+												<div className="bg-border my-1 w-px flex-1" />
 											)}
 										</div>
 										<div
@@ -221,7 +223,7 @@ export default function DashboardMain() {
 											>
 												{step.label}
 											</p>
-											<p className="text-xs text-muted-foreground">
+											<p className="text-muted-foreground text-xs">
 												{step.description}
 											</p>
 										</div>
@@ -229,7 +231,7 @@ export default function DashboardMain() {
 								))}
 							</div>
 
-							<Button size="sm" asChild className="self-start gap-1.5">
+							<Button size="sm" asChild className="gap-1.5 self-start">
 								<NavLink to="/roadmaps">
 									<Plus className="size-3.5" />
 									Paste your first job listing
@@ -259,12 +261,12 @@ export default function DashboardMain() {
 							return (
 								<Card
 									key={roadmap.id}
-									className="group flex flex-col rounded-xl border border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
+									className="border-border/60 group flex flex-col rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(0,0,0,0.05)]"
 								>
 									<CardContent className="flex flex-1 flex-col gap-4 p-5">
 										<div className="flex items-start justify-between gap-2">
 											<div className="min-w-0">
-												<p className="text-xs text-muted-foreground">
+												<p className="text-muted-foreground text-xs">
 													{roadmap.company}
 												</p>
 												<h3 className="mt-0.5 text-base font-medium leading-snug">
@@ -272,7 +274,7 @@ export default function DashboardMain() {
 												</h3>
 											</div>
 											<Avatar className="size-9 shrink-0 rounded-xl">
-												<AvatarFallback className="rounded-xl bg-muted text-xs font-medium text-muted-foreground">
+												<AvatarFallback className="bg-muted text-muted-foreground rounded-xl text-xs font-medium">
 													{roadmap.company[0]}
 												</AvatarFallback>
 											</Avatar>
@@ -283,16 +285,16 @@ export default function DashboardMain() {
 												<span className="text-muted-foreground">Progress</span>
 												<span className="font-medium">{roadmap.progress}%</span>
 											</div>
-											<div className="h-2 w-full rounded-full bg-muted">
+											<div className="bg-muted h-2 w-full rounded-full">
 												<div
-													className="h-2 rounded-full bg-accent transition-all"
+													className="bg-accent h-2 rounded-full transition-all"
 													style={{ width: `${roadmap.progress}%` }}
 												/>
 											</div>
 										</div>
 
 										<div className="mt-auto flex items-center justify-between">
-											<span className="text-xs text-muted-foreground">
+											<span className="text-muted-foreground text-xs">
 												{gapToClose > 0
 													? `${gapToClose} skills to learn`
 													: 'All matched'}

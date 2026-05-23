@@ -1,8 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
+
 import { authClient } from '@/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,7 +66,7 @@ export function LoginForm({
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Welcome back 👋</h1>
-								<p className="text-balance text-sm text-muted-foreground">
+								<p className="text-muted-foreground text-balance text-sm">
 									Good to see you again! Enter your details below 🔐
 								</p>
 							</div>
@@ -122,7 +123,7 @@ export function LoginForm({
 							</Field>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden overflow-hidden bg-muted md:block">
+					<div className="bg-muted relative hidden overflow-hidden md:block">
 						<img
 							src="/login.png"
 							alt="Sidepanel"

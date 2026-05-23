@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+
 import { EMAIL_TEMPLATE_ID } from './constants';
 
 export default class ProductEmail {

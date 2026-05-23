@@ -1,6 +1,7 @@
-import { FileText, Loader2, Upload } from 'lucide-react';
 import { useState } from 'react';
+import { FileText, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
 import { useCreateProfileFromResume } from '@/query/skills.query';
@@ -56,12 +57,12 @@ export function CvEmptyState() {
 					hidden
 					onChange={onFileChange}
 				/>
-				<div className="flex size-10 items-center justify-center rounded-xl bg-accent/[0.08]">
-					<FileText className="size-5 text-accent" />
+				<div className="bg-accent/[0.08] flex size-10 items-center justify-center rounded-xl">
+					<FileText className="text-accent size-5" />
 				</div>
 				<div>
 					<p className="text-base font-medium">{selectedFile.name}</p>
-					<p className="mt-0.5 text-sm text-muted-foreground">
+					<p className="text-muted-foreground mt-0.5 text-sm">
 						{formatFileSize(selectedFile.size)} · Ready to upload
 					</p>
 				</div>
@@ -102,12 +103,12 @@ export function CvEmptyState() {
 				hidden
 				onChange={onFileChange}
 			/>
-			<div className="flex size-12 items-center justify-center rounded-2xl bg-muted">
-				<Upload className="size-6 text-muted-foreground" />
+			<div className="bg-muted flex size-12 items-center justify-center rounded-2xl">
+				<Upload className="text-muted-foreground size-6" />
 			</div>
 			<div>
 				<p className="text-base font-medium">Upload your CV</p>
-				<p className="mt-0.5 text-sm text-muted-foreground">
+				<p className="text-muted-foreground mt-0.5 text-sm">
 					We'll extract your skills automatically so every roadmap is tailored
 					to you.
 				</p>

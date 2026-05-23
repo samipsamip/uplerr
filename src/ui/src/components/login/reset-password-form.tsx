@@ -1,8 +1,9 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+
 import { authClient } from '@/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,10 +42,10 @@ export function ResetPasswordForm({
 						className="h-48 w-48 object-contain"
 					/>
 					<h1 className="text-2xl font-bold">Invalid reset link 🔗</h1>
-					<p className="text-balance text-sm text-muted-foreground">
+					<p className="text-muted-foreground text-balance text-sm">
 						This link is invalid or has expired. Please request a new one.
 					</p>
-					<a href="/" className="text-sm text-primary">
+					<a href="/" className="text-primary text-sm">
 						Go back to home
 					</a>
 				</CardContent>
@@ -82,7 +83,7 @@ export function ResetPasswordForm({
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Set a new password 🔑</h1>
-								<p className="text-balance text-sm text-muted-foreground">
+								<p className="text-muted-foreground text-balance text-sm">
 									Choose something strong that you'll remember 💪
 								</p>
 							</div>
@@ -94,7 +95,7 @@ export function ResetPasswordForm({
 									{...register('password')}
 								/>
 								{errors.password?.message && (
-									<p className="text-xs text-destructive">
+									<p className="text-destructive text-xs">
 										{errors.password.message}
 									</p>
 								)}
@@ -109,7 +110,7 @@ export function ResetPasswordForm({
 									{...register('confirmPassword')}
 								/>
 								{errors.confirmPassword?.message && (
-									<p className="text-xs text-destructive">
+									<p className="text-destructive text-xs">
 										{errors.confirmPassword.message}
 									</p>
 								)}
@@ -121,7 +122,7 @@ export function ResetPasswordForm({
 							</Field>
 						</FieldGroup>
 					</form>
-					<div className="relative hidden overflow-hidden bg-muted md:block">
+					<div className="bg-muted relative hidden overflow-hidden md:block">
 						<img
 							src="/reset-password.png"
 							alt="Sidepanel"

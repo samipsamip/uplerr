@@ -1,12 +1,14 @@
+import { useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { DateTime, Interval } from 'luxon';
-import { useEffect } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Fallback } from '@/components/ui/fallback';
 import ErrorPage from '@/pages/ErrorPage';
 import { useGetUserProfile } from '@/query/skills.query';
+
 import { TopBar } from '../top-bar';
 import { CvCard } from './cv-card';
 import { CvEmptyState } from './cv-empty-state';
@@ -16,7 +18,6 @@ const formatUploadedDateToHuman = (date?: string) => {
 	if (!date) return;
 	const now = DateTime.now().toUTC();
 	const uploadDate = DateTime.fromISO(date);
-	console.log(uploadDate);
 
 	const interval = Interval.fromDateTimes(uploadDate, now);
 
@@ -62,7 +63,7 @@ export default function SkillsMain() {
 			/>
 
 			<div className="flex flex-col gap-8 p-6 md:p-8">
-				<Card className="rounded-xl border border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+				<Card className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
 					<CardContent className="p-5">
 						{cvFile ? <CvCard cvFile={cvFile} /> : <CvEmptyState />}
 					</CardContent>

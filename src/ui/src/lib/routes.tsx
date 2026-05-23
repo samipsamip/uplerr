@@ -1,4 +1,3 @@
-import ky from 'ky';
 import type { RouteObject } from 'react-router';
 import {
 	createBrowserRouter,
@@ -6,6 +5,7 @@ import {
 	redirect,
 	useLoaderData,
 } from 'react-router';
+import ky from 'ky';
 
 import { Fallback } from '@/components/ui/fallback';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
@@ -15,7 +15,6 @@ import PasswordResetSuccessPage from '@/pages/auth/PasswordResetSuccessPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
-
 import Dashboard from '@/pages/dashboard/Dashboard';
 import Roadmaps from '@/pages/dashboard/Roadmaps';
 import Skills from '@/pages/dashboard/Skills';
