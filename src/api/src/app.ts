@@ -1,16 +1,10 @@
-import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import profileRoute from './components/profiles/profiles.route';
 import { auth } from './lib/auth';
+import { factory } from './lib/factory';
 import { authMiddleWare } from './lib/middleware';
-
 export function buildApp() {
-	const app = new Hono<{
-		Variables: {
-			user: typeof auth.$Infer.Session.user;
-			session: typeof auth.$Infer.Session.session;
-		};
-	}>();
-
+	const app = factory.createApp();
 	const allowedOrigins = process.env.TRUSTED_ORIGINS
 		? process.env.TRUSTED_ORIGINS.split(',')
 		: ['http://localhost:5173'];
@@ -26,10 +20,7 @@ export function buildApp() {
 		}),
 	);
 
-	app.on(['POST', 'GET'], '/api/auth/*', async (c, next) => {
-		await auth.handler(c.req.raw);
-		await next();
-	});
+	app.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 	app.get('/me', authMiddleWare, (c) => {
 		return c.json(
 			{
@@ -38,7 +29,7 @@ export function buildApp() {
 			200,
 		);
 	});
-	app.get('/', (c) => c.text('Hello Hono!'));
-
+	app.route('/api/profile', profileRoute);
+	app.use('*', async (c) => c.json({ message: 'Not Found' }, 404));
 	return app;
 }

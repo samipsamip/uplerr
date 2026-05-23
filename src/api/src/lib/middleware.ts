@@ -1,7 +1,7 @@
-import { createMiddleware } from 'hono/factory';
 import { auth } from './auth';
+import { factory } from './factory';
 
-export const authMiddleWare = createMiddleware(async (c, next) => {
+export const authMiddleWare = factory.createMiddleware(async (c, next) => {
 	const authSession = await auth.api.getSession({ headers: c.req.raw.headers });
 	if (!authSession?.session?.token) {
 		return c.json({ message: 'Unauthorized' }, 401);
