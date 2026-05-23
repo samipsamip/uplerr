@@ -6,6 +6,7 @@ import {
 	deleteResumeFromBucket,
 	uploadResumeToBucket,
 } from '../../lib/upload-utils';
+import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import {
 	profileSchema,
 	userProfilePublicFields,
@@ -21,6 +22,21 @@ export const getUserProfileById = async (userId: string) => {
 		.where(and(eq(profileSchema.user_id, userId), notDeleted(profileSchema)))
 		.limit(1);
 };
+
+export const getActiveCvProfile = async (userId: string) => {
+	return db
+		.select()
+		.from(cvProfileSchema)
+		.where(
+			and(
+				eq(cvProfileSchema.user_id, userId),
+				eq(cvProfileSchema.is_active, true),
+				notDeleted(cvProfileSchema),
+			),
+		)
+		.limit(1);
+};
+
 export const createUserProfileFromCV = async (
 	file: Blob,
 	fileName: string,
@@ -48,17 +64,24 @@ export const createUserProfileFromCV = async (
 		await parser?.destroy();
 	}
 
-	const newKey = await uploadResumeToBucket(file, userId);
-	await db
-		.insert(profileSchema)
-		.values({
+	const resumeKey = await uploadResumeToBucket(file, userId);
+
+	await db.transaction(async (tx) => {
+		await tx
+			.insert(profileSchema)
+			.values({ user_id: userId })
+			.onConflictDoNothing();
+
+		await tx.insert(cvProfileSchema).values({
 			user_id: userId,
-			resume_file_name: fileName,
+			original_filename: fileName,
+			resume_key: resumeKey,
 			resume_hash: hash,
-			resume_key: newKey,
-		})
-		.onConflictDoNothing();
+			is_active: true,
+		});
+	});
 };
+
 export const processResumeReplacement = async (
 	file: Blob,
 	fileName: string,
@@ -67,15 +90,23 @@ export const processResumeReplacement = async (
 	const buffer = new Uint8Array(await file.arrayBuffer());
 	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
 
-	const [profile] = await db
+	const [activeProfile] = await db
 		.select({
-			resume_key: profileSchema.resume_key,
-			resume_hash: profileSchema.resume_hash,
+			id: cvProfileSchema.id,
+			resume_key: cvProfileSchema.resume_key,
+			resume_hash: cvProfileSchema.resume_hash,
 		})
-		.from(profileSchema)
-		.where(eq(profileSchema.user_id, userId));
+		.from(cvProfileSchema)
+		.where(
+			and(
+				eq(cvProfileSchema.user_id, userId),
+				eq(cvProfileSchema.is_active, true),
+				notDeleted(cvProfileSchema),
+			),
+		)
+		.limit(1);
 
-	if (profile?.resume_hash === hash) {
+	if (activeProfile?.resume_hash === hash) {
 		return { isDuplicate: true };
 	}
 
@@ -101,19 +132,26 @@ export const processResumeReplacement = async (
 
 	const newKey = await uploadResumeToBucket(file, userId);
 
-	if (profile?.resume_key) {
-		await deleteResumeFromBucket(profile.resume_key);
+	if (activeProfile?.resume_key) {
+		await deleteResumeFromBucket(activeProfile.resume_key);
 	}
 
-	await db
-		.update(profileSchema)
-		.set({
+	await db.transaction(async (tx) => {
+		if (activeProfile?.id) {
+			await tx
+				.update(cvProfileSchema)
+				.set({ is_active: false, updated_at: new Date() })
+				.where(eq(cvProfileSchema.id, activeProfile.id));
+		}
+
+		await tx.insert(cvProfileSchema).values({
+			user_id: userId,
+			original_filename: fileName,
 			resume_key: newKey,
 			resume_hash: hash,
-			resume_file_name: fileName,
-			updated_at: new Date(),
-		})
-		.where(eq(profileSchema.user_id, userId));
+			is_active: true,
+		});
+	});
 
 	return { isDuplicate: false };
 };
