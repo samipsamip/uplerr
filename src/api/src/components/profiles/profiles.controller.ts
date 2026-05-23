@@ -2,6 +2,7 @@ import { factory } from '../../lib/factory';
 import { ResumeValidationError } from '../../utils/error-utils';
 import {
 	createUserProfileFromCV,
+	getActiveCvProfile,
 	getUserProfileById,
 	processResumeReplacement,
 } from './profiles.service';
@@ -12,15 +13,18 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 	const user = c.get('user');
 	try {
 		const [userProfile] = await getUserProfileById(user.id);
-		const skills =
-			userProfile?.skills && typeof userProfile.skills === 'object'
-				? userProfile.skills
-				: {};
+		const [cvProfile] = await getActiveCvProfile(user.id);
 
 		return c.json(
 			{
 				...userProfile,
-				skillsExtracted: userProfile ? Object.keys(skills).length : undefined,
+				cv: cvProfile
+					? {
+							filename: cvProfile.original_filename,
+							uploadedAt: cvProfile.uploaded_at,
+							hasStructuredData: cvProfile.structured_data !== null,
+						}
+					: null,
 			},
 			200,
 		);
@@ -36,7 +40,6 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 });
 
 export const createUserProfile = factory.createHandlers(async (c) => {
-	//create a profile out of the cv provided from the user.
 	const user = c.get('user');
 	const resumeFormData = await c.req.formData();
 	const resume = resumeFormData.get('resume');

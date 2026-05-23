@@ -1,11 +1,4 @@
-import {
-	jsonb,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-	varchar,
-} from 'drizzle-orm/pg-core';
+import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { user } from './auth-schema';
 
@@ -15,28 +8,28 @@ export const profileSchema = pgTable('user_profiles', {
 		.references(() => user.id)
 		.unique()
 		.notNull(),
-	resume_key: varchar({ length: 255 }),
-	resume_file_name: varchar({ length: 255 }),
-	resume_hash: varchar({ length: 64 }),
-	skills: jsonb().default({}),
-	created_at: timestamp({
-		withTimezone: true,
-	})
+	full_name: text('full_name'),
+	subscription_tier: text('subscription_tier').default('free').notNull(),
+	stripe_customer_id: text('stripe_customer_id'),
+	stripe_subscription_id: text('stripe_subscription_id'),
+	cv_generations_used: integer('cv_generations_used').default(0).notNull(),
+	study_plans_used: integer('study_plans_used').default(0).notNull(),
+	usage_reset_at: timestamp('usage_reset_at', { withTimezone: true }),
+	created_at: timestamp('created_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
-	updated_at: timestamp({
-		withTimezone: true,
-	})
+	updated_at: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
-	deleted_at: timestamp({
-		withTimezone: true,
-	}),
+	deleted_at: timestamp('deleted_at', { withTimezone: true }),
 });
 
 export const userProfilePublicFields = {
 	id: profileSchema.id,
-	resume_file_name: profileSchema.resume_file_name,
-	skills: profileSchema.skills,
+	full_name: profileSchema.full_name,
+	subscription_tier: profileSchema.subscription_tier,
+	cv_generations_used: profileSchema.cv_generations_used,
+	study_plans_used: profileSchema.study_plans_used,
+	usage_reset_at: profileSchema.usage_reset_at,
 	createdAt: profileSchema.created_at,
 };
