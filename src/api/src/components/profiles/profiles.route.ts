@@ -9,7 +9,7 @@ import {
 const profileRoute = factory.createApp();
 
 profileRoute.get('/', authMiddleWare, ...getUserProfile);
-profileRoute.post('/create-profile', authMiddleWare, ...createUserProfile);
+profileRoute.post('/upload-resume', authMiddleWare, ...createUserProfile);
 profileRoute.post('/update-resume', authMiddleWare, ...updateUserResume);
 
 export default profileRoute;

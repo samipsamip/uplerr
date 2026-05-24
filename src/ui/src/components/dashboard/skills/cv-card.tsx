@@ -9,7 +9,6 @@ import { useUpdateResume } from '@/query/skills.query';
 export interface CvFile {
 	name: string;
 	uploadedAt: string;
-	skillsExtracted: number;
 }
 
 interface CvCardProps {
@@ -74,8 +73,7 @@ export function CvCard({ cvFile }: CvCardProps) {
 					<div>
 						<p className="text-base font-medium">{cvFile.name}</p>
 						<p className="text-muted-foreground mt-0.5 text-xs">
-							Uploaded {cvFile.uploadedAt} &middot; {cvFile.skillsExtracted}{' '}
-							skills extracted
+							Uploaded {cvFile.uploadedAt}
 						</p>
 					</div>
 				</div>

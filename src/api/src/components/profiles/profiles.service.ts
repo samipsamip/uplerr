@@ -15,6 +15,28 @@ import db from '../../utils/db';
 import { ResumeValidationError } from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
 
+const validatePdf = async (buffer: Uint8Array): Promise<void> => {
+	let parser: InstanceType<typeof PDFParse> | null = null;
+	try {
+		parser = new PDFParse(buffer);
+		const info = await parser.getInfo();
+		if (info.total > 5) {
+			throw new ResumeValidationError(
+				'PAGE_LIMIT',
+				'The provided PDF has more than 5 pages, please upload a PDF with 5 pages or less.',
+			);
+		}
+	} catch (error) {
+		if (error instanceof ResumeValidationError) throw error;
+		throw new ResumeValidationError(
+			'CORRUPTED',
+			'The provided PDF appears to be corrupted. Please try again with a different file.',
+		);
+	} finally {
+		await parser?.destroy();
+	}
+};
+
 export const getUserProfileById = async (userId: string) => {
 	return db
 		.select(userProfilePublicFields)
@@ -44,25 +66,7 @@ export const createUserProfileFromCV = async (
 ) => {
 	const buffer = new Uint8Array(await file.arrayBuffer());
 	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-	let parser: InstanceType<typeof PDFParse> | null = null;
-	try {
-		parser = new PDFParse(buffer);
-		const info = await parser.getInfo();
-		if (info.total > 5) {
-			throw new ResumeValidationError(
-				'PAGE_LIMIT',
-				'The provided PDF has more than 5 pages, please upload a PDF with 5 pages or less.',
-			);
-		}
-	} catch (error) {
-		if (error instanceof ResumeValidationError) throw error;
-		throw new ResumeValidationError(
-			'CORRUPTED',
-			'The provided PDF appears to be corrupted. Please try again with a different file.',
-		);
-	} finally {
-		await parser?.destroy();
-	}
+	await validatePdf(buffer);
 
 	const resumeKey = await uploadResumeToBucket(file, userId);
 
@@ -110,25 +114,7 @@ export const processResumeReplacement = async (
 		return { isDuplicate: true };
 	}
 
-	let parser: InstanceType<typeof PDFParse> | null = null;
-	try {
-		parser = new PDFParse(buffer);
-		const info = await parser.getInfo();
-		if (info.total > 5) {
-			throw new ResumeValidationError(
-				'PAGE_LIMIT',
-				'The provided PDF has more than 5 pages, please upload a PDF with 5 pages or less.',
-			);
-		}
-	} catch (error) {
-		if (error instanceof ResumeValidationError) throw error;
-		throw new ResumeValidationError(
-			'CORRUPTED',
-			'The provided PDF appears to be corrupted. Please try again with a different file.',
-		);
-	} finally {
-		await parser?.destroy();
-	}
+	await validatePdf(buffer);
 
 	const newKey = await uploadResumeToBucket(file, userId);
 

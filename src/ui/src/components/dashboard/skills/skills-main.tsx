@@ -43,9 +43,9 @@ export default function SkillsMain() {
 	const cvFile =
 		skillData && Object.keys(skillData).length > 0
 			? {
-					name: skillData?.resume_file_name || '',
-					uploadedAt: formatUploadedDateToHuman(skillData?.createdAt) || '',
-					skillsExtracted: skillData?.skillsExtracted || 0,
+					name: skillData?.cv?.filename || '',
+					uploadedAt:
+						formatUploadedDateToHuman(skillData?.cv?.uploadedAt) || '',
 				}
 			: undefined;
 

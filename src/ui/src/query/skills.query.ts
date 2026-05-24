@@ -4,7 +4,7 @@ import {
 	getUserProfile,
 	postCreateProfileFromResume,
 	postUpdateResume,
-} from '@/network/skills.service';
+} from '@/network/profile.service';
 
 export const useUpdateResume = () =>
 	useMutation({

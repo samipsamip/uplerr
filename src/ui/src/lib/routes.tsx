@@ -20,17 +20,29 @@ import Roadmaps from '@/pages/dashboard/Roadmaps';
 import Skills from '@/pages/dashboard/Skills';
 import ErrorPage from '@/pages/ErrorPage';
 
+let _sessionCache: { value: unknown; expiresAt: number } | null = null;
+
 const getSession = async () => {
+	const now = Date.now();
+	if (_sessionCache && now < _sessionCache.expiresAt) {
+		return _sessionCache.value;
+	}
 	try {
-		const response = await ky
+		const value = await ky
 			.get('http://localhost:3000/me', {
 				credentials: 'include',
 			})
 			.json();
-		return response;
+		_sessionCache = { value, expiresAt: now + 30_000 };
+		return value;
 	} catch {
+		_sessionCache = null;
 		return false;
 	}
+};
+
+export const invalidateSessionCache = () => {
+	_sessionCache = null;
 };
 
 /**
@@ -56,19 +68,6 @@ const requireAuth = async () => {
 	return authenticated;
 };
 
-/**
- * Block logged-in users from auth pages
- */
-const requireGuest = async () => {
-	const authenticated = await getSession();
-
-	if (authenticated) {
-		throw redirect('/dashboard');
-	}
-
-	return null;
-};
-
 /* ---------------------------------- */
 /* Layout                            */
 /* ---------------------------------- */
@@ -80,12 +79,10 @@ function ProtectedLayout() {
 const publicRoutes: RouteObject[] = [
 	{
 		path: '/login',
-		loader: requireGuest,
 		Component: LoginPage,
 	},
 	{
 		path: '/signup',
-		loader: requireGuest,
 		Component: SignupPage,
 	},
 	{
@@ -115,6 +112,7 @@ const privateRoutes: RouteObject[] = [
 		path: '/',
 		loader: requireAuth,
 		Component: ProtectedLayout,
+		HydrateFallback: Fallback,
 		children: [
 			{
 				path: 'dashboard',
