@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
-import { useCreateProfileFromResume } from '@/query/skills.query';
+import { useCreateProfileFromResume } from '@/query/profile.query';
 
 function formatFileSize(bytes: number): string {
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;

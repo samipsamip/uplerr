@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
-import { Plus } from 'lucide-react';
 import { DateTime, Interval } from 'luxon';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Fallback } from '@/components/ui/fallback';
 import ErrorPage from '@/pages/ErrorPage';
-import { useGetUserProfile } from '@/query/skills.query';
+import { useGetUserProfile } from '@/query/profile.query';
 
 import { TopBar } from '../top-bar';
 import { CvCard } from './cv-card';
@@ -41,7 +39,7 @@ export default function SkillsMain() {
 	if (isError) return <ErrorPage />;
 
 	const cvFile =
-		skillData && Object.keys(skillData).length > 0
+		skillData?.cv && Object.keys(skillData?.cv || {}).length > 0
 			? {
 					name: skillData?.cv?.filename || '',
 					uploadedAt:
@@ -54,12 +52,6 @@ export default function SkillsMain() {
 			<TopBar
 				title="Skills & CV"
 				description="Your extracted skills power every roadmap we generate for you."
-				action={
-					<Button size="sm" className="gap-1.5">
-						<Plus className="size-3.5" />
-						Add Skill
-					</Button>
-				}
 			/>
 
 			<div className="flex flex-col gap-8 p-6 md:p-8">

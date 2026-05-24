@@ -45,13 +45,13 @@ export const getUserProfileById = async (userId: string) => {
 		.limit(1);
 };
 
-export const getActiveCvProfile = async (userId: string) => {
+export const getActiveCvProfile = async (profileId: string) => {
 	return db
 		.select()
 		.from(cvProfileSchema)
 		.where(
 			and(
-				eq(cvProfileSchema.user_id, userId),
+				eq(cvProfileSchema.profile_id, profileId),
 				eq(cvProfileSchema.is_active, true),
 				notDeleted(cvProfileSchema),
 			),
@@ -63,6 +63,7 @@ export const createUserProfileFromCV = async (
 	file: Blob,
 	fileName: string,
 	userId: string,
+	profileId: string,
 ) => {
 	const buffer = new Uint8Array(await file.arrayBuffer());
 	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
@@ -70,19 +71,12 @@ export const createUserProfileFromCV = async (
 
 	const resumeKey = await uploadResumeToBucket(file, userId);
 
-	await db.transaction(async (tx) => {
-		await tx
-			.insert(profileSchema)
-			.values({ user_id: userId })
-			.onConflictDoNothing();
-
-		await tx.insert(cvProfileSchema).values({
-			user_id: userId,
-			original_filename: fileName,
-			resume_key: resumeKey,
-			resume_hash: hash,
-			is_active: true,
-		});
+	await db.insert(cvProfileSchema).values({
+		profile_id: profileId,
+		original_filename: fileName,
+		resume_key: resumeKey,
+		resume_hash: hash,
+		is_active: true,
 	});
 };
 
@@ -90,6 +84,7 @@ export const processResumeReplacement = async (
 	file: Blob,
 	fileName: string,
 	userId: string,
+	profileId: string,
 ) => {
 	const buffer = new Uint8Array(await file.arrayBuffer());
 	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
@@ -103,7 +98,7 @@ export const processResumeReplacement = async (
 		.from(cvProfileSchema)
 		.where(
 			and(
-				eq(cvProfileSchema.user_id, userId),
+				eq(cvProfileSchema.profile_id, profileId),
 				eq(cvProfileSchema.is_active, true),
 				notDeleted(cvProfileSchema),
 			),
@@ -131,7 +126,7 @@ export const processResumeReplacement = async (
 		}
 
 		await tx.insert(cvProfileSchema).values({
-			user_id: userId,
+			profile_id: profileId,
 			original_filename: fileName,
 			resume_key: newKey,
 			resume_hash: hash,

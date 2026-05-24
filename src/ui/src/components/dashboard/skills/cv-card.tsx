@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
-import { useUpdateResume } from '@/query/skills.query';
+import { useUpdateResume } from '@/query/profile.query';
 
 export interface CvFile {
 	name: string;

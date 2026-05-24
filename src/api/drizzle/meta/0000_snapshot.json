@@ -1,5 +1,5 @@
 {
-	"id": "68c6db10-303a-4722-aa42-76404a792dde",
+	"id": "de136018-e8f2-48f7-b5b5-b8a3bf91a7ab",
 	"prevId": "00000000-0000-0000-0000-000000000000",
 	"version": "7",
 	"dialect": "postgresql",
@@ -358,9 +358,9 @@
 					"notNull": true,
 					"default": "gen_random_uuid()"
 				},
-				"user_id": {
-					"name": "user_id",
-					"type": "text",
+				"profile_id": {
+					"name": "profile_id",
+					"type": "uuid",
 					"primaryKey": false,
 					"notNull": true
 				},
@@ -431,12 +431,12 @@
 			},
 			"indexes": {},
 			"foreignKeys": {
-				"cv_profiles_user_id_user_profiles_user_id_fk": {
-					"name": "cv_profiles_user_id_user_profiles_user_id_fk",
+				"cv_profiles_profile_id_user_profiles_id_fk": {
+					"name": "cv_profiles_profile_id_user_profiles_id_fk",
 					"tableFrom": "cv_profiles",
 					"tableTo": "user_profiles",
-					"columnsFrom": ["user_id"],
-					"columnsTo": ["user_id"],
+					"columnsFrom": ["profile_id"],
+					"columnsTo": ["id"],
 					"onDelete": "no action",
 					"onUpdate": "no action"
 				}
@@ -677,9 +677,9 @@
 					"notNull": true,
 					"default": "gen_random_uuid()"
 				},
-				"user_id": {
-					"name": "user_id",
-					"type": "text",
+				"profile_id": {
+					"name": "profile_id",
+					"type": "uuid",
 					"primaryKey": false,
 					"notNull": true
 				},
@@ -750,12 +750,12 @@
 			},
 			"indexes": {},
 			"foreignKeys": {
-				"study_plans_user_id_user_profiles_user_id_fk": {
-					"name": "study_plans_user_id_user_profiles_user_id_fk",
+				"study_plans_profile_id_user_profiles_id_fk": {
+					"name": "study_plans_profile_id_user_profiles_id_fk",
 					"tableFrom": "study_plans",
 					"tableTo": "user_profiles",
-					"columnsFrom": ["user_id"],
-					"columnsTo": ["user_id"],
+					"columnsFrom": ["profile_id"],
+					"columnsTo": ["id"],
 					"onDelete": "no action",
 					"onUpdate": "no action"
 				},
@@ -786,9 +786,9 @@
 					"notNull": true,
 					"default": "gen_random_uuid()"
 				},
-				"user_id": {
-					"name": "user_id",
-					"type": "text",
+				"profile_id": {
+					"name": "profile_id",
+					"type": "uuid",
 					"primaryKey": false,
 					"notNull": true
 				},
@@ -842,12 +842,12 @@
 			},
 			"indexes": {},
 			"foreignKeys": {
-				"user_skills_user_id_user_profiles_user_id_fk": {
-					"name": "user_skills_user_id_user_profiles_user_id_fk",
+				"user_skills_profile_id_user_profiles_id_fk": {
+					"name": "user_skills_profile_id_user_profiles_id_fk",
 					"tableFrom": "user_skills",
 					"tableTo": "user_profiles",
-					"columnsFrom": ["user_id"],
-					"columnsTo": ["user_id"],
+					"columnsFrom": ["profile_id"],
+					"columnsTo": ["id"],
 					"onDelete": "no action",
 					"onUpdate": "no action"
 				}

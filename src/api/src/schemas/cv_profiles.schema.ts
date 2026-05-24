@@ -12,8 +12,8 @@ import { profileSchema } from './profiles.schema';
 
 export const cvProfileSchema = pgTable('cv_profiles', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	user_id: text('user_id')
-		.references(() => profileSchema.user_id)
+	profile_id: uuid('profile_id')
+		.references(() => profileSchema.id)
 		.notNull(),
 	original_filename: text('original_filename').notNull(),
 	resume_key: varchar('resume_key', { length: 255 }),

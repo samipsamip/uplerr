@@ -51,7 +51,7 @@ CREATE TABLE "verification" (
 --> statement-breakpoint
 CREATE TABLE "cv_profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" text NOT NULL,
+	"profile_id" uuid NOT NULL,
 	"original_filename" text NOT NULL,
 	"resume_key" varchar(255),
 	"resume_hash" varchar(64),
@@ -99,7 +99,7 @@ CREATE TABLE "user_profiles" (
 --> statement-breakpoint
 CREATE TABLE "study_plans" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" text NOT NULL,
+	"profile_id" uuid NOT NULL,
 	"cv_profile_id" uuid,
 	"source_url" text,
 	"job_ad_text" text,
@@ -114,7 +114,7 @@ CREATE TABLE "study_plans" (
 --> statement-breakpoint
 CREATE TABLE "user_skills" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" text NOT NULL,
+	"profile_id" uuid NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"category" "skill_category" NOT NULL,
 	"level" "skill_level" NOT NULL,
@@ -126,12 +126,12 @@ CREATE TABLE "user_skills" (
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "cv_profiles" ADD CONSTRAINT "cv_profiles_user_id_user_profiles_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "cv_profiles" ADD CONSTRAINT "cv_profiles_profile_id_user_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."user_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "plan_items" ADD CONSTRAINT "plan_items_plan_id_study_plans_id_fk" FOREIGN KEY ("plan_id") REFERENCES "public"."study_plans"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "study_plans" ADD CONSTRAINT "study_plans_user_id_user_profiles_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "study_plans" ADD CONSTRAINT "study_plans_profile_id_user_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."user_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "study_plans" ADD CONSTRAINT "study_plans_cv_profile_id_cv_profiles_id_fk" FOREIGN KEY ("cv_profile_id") REFERENCES "public"."cv_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_skills" ADD CONSTRAINT "user_skills_user_id_user_profiles_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user_profiles"("user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_skills" ADD CONSTRAINT "user_skills_profile_id_user_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."user_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");
