@@ -27,6 +27,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from '@/components/ui/sidebar';
+import { invalidateSessionCache } from '@/lib/routes';
 
 function getInitials(name: string) {
 	return name
@@ -53,6 +54,7 @@ export function NavUser({
 		authClient.signOut({
 			fetchOptions: {
 				onSuccess: () => {
+					invalidateSessionCache();
 					navigate('/login');
 				},
 			},

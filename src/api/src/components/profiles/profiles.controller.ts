@@ -12,8 +12,10 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 export const getUserProfile = factory.createHandlers(async (c) => {
 	const user = c.get('user');
 	try {
-		const [userProfile] = await getUserProfileById(user.id);
-		const [cvProfile] = await getActiveCvProfile(user.id);
+		const [[userProfile], [cvProfile]] = await Promise.all([
+			getUserProfileById(user.id),
+			getActiveCvProfile(user.id),
+		]);
 
 		return c.json(
 			{
@@ -28,8 +30,7 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 			},
 			200,
 		);
-	} catch (e) {
-		console.log(e);
+	} catch {
 		return c.json(
 			{
 				message: 'Error fetching user profile, please try again later',

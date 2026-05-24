@@ -31,5 +31,4 @@ export const userProfilePublicFields = {
 	cv_generations_used: profileSchema.cv_generations_used,
 	study_plans_used: profileSchema.study_plans_used,
 	usage_reset_at: profileSchema.usage_reset_at,
-	createdAt: profileSchema.created_at,
 };
