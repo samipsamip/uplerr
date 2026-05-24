@@ -1,3 +1,5 @@
+import { addSkillSchema, updateSkillSchema } from '@uppler/types';
+
 import { factory } from '../../lib/factory';
 import {
 	addSkill,
@@ -5,7 +7,6 @@ import {
 	getSkillsByProfileId,
 	updateSkill,
 } from './skills.service';
-import type { AddSkillPayload, UpdateSkillPayload } from './skills.types';
 
 export const getUserSkills = factory.createHandlers(async (c) => {
 	const profileId = c.get('profileId');
@@ -22,14 +23,18 @@ export const getUserSkills = factory.createHandlers(async (c) => {
 
 export const addUserSkills = factory.createHandlers(async (c) => {
 	const profileId = c.get('profileId');
-	const body = await c.req.json<AddSkillPayload>();
-
-	if (!body.name || !body.category || !body.level) {
-		return c.json({ message: 'name, category and level are required.' }, 400);
+	const result = addSkillSchema.safeParse(await c.req.json());
+	if (!result.success) {
+		return c.json(
+			{
+				message: 'Invalid payload',
+				errors: result.error.flatten().fieldErrors,
+			},
+			400,
+		);
 	}
-
 	try {
-		const skill = await addSkill(profileId, body);
+		const skill = await addSkill(profileId, result.data);
 		return c.json(skill, 201);
 	} catch {
 		return c.json(
@@ -38,15 +43,24 @@ export const addUserSkills = factory.createHandlers(async (c) => {
 		);
 	}
 });
+
 export const updateUserSkill = factory.createHandlers(async (c) => {
 	const profileId = c.get('profileId');
 	const skillId = c.req.param('skillId');
 	if (!skillId) return c.json({ message: 'Skill ID is required.' }, 400);
 
-	const body = await c.req.json<UpdateSkillPayload>();
-
+	const result = updateSkillSchema.safeParse(await c.req.json());
+	if (!result.success) {
+		return c.json(
+			{
+				message: 'Invalid payload',
+				errors: result.error.flatten().fieldErrors,
+			},
+			400,
+		);
+	}
 	try {
-		const skill = await updateSkill(skillId, profileId, body);
+		const skill = await updateSkill(skillId, profileId, result.data);
 		if (!skill) return c.json({ message: 'Skill not found.' }, 404);
 		return c.json(skill, 200);
 	} catch {

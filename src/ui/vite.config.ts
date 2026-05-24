@@ -8,6 +8,7 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			'@': path.resolve(__dirname, './src'),
+			'@uppler/types': path.resolve(__dirname, '../types/src/index.ts'),
 		},
 	},
 });
