@@ -1,34 +1,22 @@
 import { z } from 'zod';
+import { SKILL_CATEGORIES, SKILL_LEVELS } from '@uppler/types';
 
-export const CATEGORIES = [
-	'Frontend',
-	'Backend',
-	'Mobile',
-	'DevOps',
-	'Cloud',
-	'Data',
-	'Design',
-	'Testing',
-	'Security',
-	'Other',
-] as const;
+export const CATEGORIES = SKILL_CATEGORIES;
 
 export const LEVELS = [
-	{ value: 'beginner', label: 'Beginner' },
-	{ value: 'intermediate', label: 'Intermediate' },
-	{ value: 'advanced', label: 'Advanced' },
-	{ value: 'expert', label: 'Expert' },
+	{ value: 'beginner' as const, label: 'Beginner' },
+	{ value: 'intermediate' as const, label: 'Intermediate' },
+	{ value: 'advanced' as const, label: 'Advanced' },
+	{ value: 'expert' as const, label: 'Expert' },
 ] as const;
 
-export type SkillCategory = (typeof CATEGORIES)[number];
-export type SkillLevel = (typeof LEVELS)[number]['value'];
+export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
+export type SkillLevel = (typeof SKILL_LEVELS)[number];
 
 export const skillFormSchema = z.object({
 	name: z.string().min(1, 'Skill name is required').max(100),
-	category: z.enum(CATEGORIES, { error: 'Please select a category' }),
-	level: z.enum(LEVELS.map((l) => l.value) as [SkillLevel, ...SkillLevel[]], {
-		error: 'Please select an experience level',
-	}),
+	category: z.enum(SKILL_CATEGORIES, { error: 'Please select a category' }),
+	level: z.enum(SKILL_LEVELS, { error: 'Please select an experience level' }),
 });
 
 export type SkillFormValues = z.infer<typeof skillFormSchema>;

@@ -14,6 +14,7 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/geist": "^5.2.8",
+		"@uppler/types": "workspace:*",
 		"@fontsource-variable/noto-sans": "^5.2.10",
 		"@hookform/resolvers": "^5.2.2",
 		"@tailwindcss/vite": "^4.3.0",
