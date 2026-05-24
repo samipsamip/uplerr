@@ -31,8 +31,8 @@ export const skillLevelEnum = pgEnum('skill_level', [
 
 export const userSkillSchema = pgTable('user_skills', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	user_id: text('user_id')
-		.references(() => profileSchema.user_id)
+	profile_id: uuid('profile_id')
+		.references(() => profileSchema.id)
 		.notNull(),
 	name: varchar('name', { length: 100 }).notNull(),
 	category: skillCategoryEnum('category').notNull(),

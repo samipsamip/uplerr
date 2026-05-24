@@ -18,8 +18,8 @@ export const studyPlanStatusEnum = pgEnum('study_plan_status', [
 
 export const studyPlanSchema = pgTable('study_plans', {
 	id: uuid().primaryKey().defaultRandom(),
-	user_id: text('user_id')
-		.references(() => profileSchema.user_id)
+	profile_id: uuid('profile_id')
+		.references(() => profileSchema.id)
 		.notNull(),
 	cv_profile_id: uuid('cv_profile_id').references(() => cvProfileSchema.id),
 	source_url: text('source_url'),

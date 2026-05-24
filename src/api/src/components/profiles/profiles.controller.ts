@@ -11,10 +11,11 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 export const getUserProfile = factory.createHandlers(async (c) => {
 	const user = c.get('user');
+	const profileId = c.get('profileId');
 	try {
 		const [[userProfile], [cvProfile]] = await Promise.all([
 			getUserProfileById(user.id),
-			getActiveCvProfile(user.id),
+			getActiveCvProfile(profileId),
 		]);
 
 		return c.json(
@@ -30,7 +31,8 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 			},
 			200,
 		);
-	} catch {
+	} catch (e) {
+		console.log(e);
 		return c.json(
 			{
 				message: 'Error fetching user profile, please try again later',
@@ -42,6 +44,7 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 
 export const createUserProfile = factory.createHandlers(async (c) => {
 	const user = c.get('user');
+	const profileId = c.get('profileId');
 	const resumeFormData = await c.req.formData();
 	const resume = resumeFormData.get('resume');
 
@@ -61,7 +64,7 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 		);
 	}
 	try {
-		await createUserProfileFromCV(resume, resume.name, user.id);
+		await createUserProfileFromCV(resume, resume.name, user.id, profileId);
 		return c.json({ message: 'CV uploaded successfully.' }, 201);
 	} catch (error) {
 		if (error instanceof ResumeValidationError) {
@@ -82,6 +85,7 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 
 export const updateUserResume = factory.createHandlers(async (c) => {
 	const user = c.get('user');
+	const profileId = c.get('profileId');
 	const resumeFormData = await c.req.formData();
 	const resume = resumeFormData.get('resume');
 
@@ -102,7 +106,12 @@ export const updateUserResume = factory.createHandlers(async (c) => {
 	}
 
 	try {
-		const result = await processResumeReplacement(resume, resume.name, user.id);
+		const result = await processResumeReplacement(
+			resume,
+			resume.name,
+			user.id,
+			profileId,
+		);
 		if (result.isDuplicate) {
 			return c.json({ message: 'This resume has already been uploaded.' }, 201);
 		}
