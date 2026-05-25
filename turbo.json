@@ -21,6 +21,13 @@
 		"typecheck": {
 			"dependsOn": ["^typecheck"],
 			"outputs": []
+		},
+		"test": {
+			"outputs": ["coverage/**"]
+		},
+		"test:watch": {
+			"persistent": true,
+			"cache": false
 		}
 	}
 }

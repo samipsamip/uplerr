@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
@@ -29,11 +28,10 @@ export function LoginForm({
 	const {
 		handleSubmit,
 		register,
-		formState: { errors, isDirty },
+		formState: { errors, isDirty, isSubmitting },
 	} = useForm({
 		resolver: zodResolver(UserLoginSchema),
 	});
-	const [buttonDisabled, setButtonDisabled] = useState(false);
 
 	const handleOnSubmit = async (data: UserLoginSchemaType) => {
 		await authClient.signIn.email(
@@ -58,11 +56,7 @@ export function LoginForm({
 		<div className={cn('flex flex-col gap-6', className)} {...props}>
 			<Card className="overflow-hidden p-0">
 				<CardContent className="grid p-0 md:grid-cols-2">
-					<form
-						className="p-6 md:p-8"
-						onSubmit={handleSubmit(handleOnSubmit)}
-						onChange={() => setButtonDisabled(false)}
-					>
+					<form className="p-6 md:p-8" onSubmit={handleSubmit(handleOnSubmit)}>
 						<FieldGroup>
 							<div className="flex flex-col items-center gap-1 text-center">
 								<h1 className="text-2xl font-bold">Welcome back 👋</h1>
@@ -106,7 +100,7 @@ export function LoginForm({
 								)}
 							</Field>
 							<Field>
-								<Button type="submit" disabled={!isDirty || buttonDisabled}>
+								<Button type="submit" disabled={!isDirty || isSubmitting}>
 									Login
 								</Button>
 							</Field>
