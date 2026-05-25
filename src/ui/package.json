@@ -10,15 +10,18 @@
 		"typecheck": "tsc -b --noEmit",
 		"format": "prettier --write .",
 		"check": "eslint . && prettier --check .",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:ui": "vitest --ui",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@fontsource-variable/geist": "^5.2.8",
-		"@uppler/types": "workspace:*",
 		"@fontsource-variable/noto-sans": "^5.2.10",
 		"@hookform/resolvers": "^5.2.2",
 		"@tailwindcss/vite": "^4.3.0",
 		"@tanstack/react-query": "^5.100.10",
+		"@uppler/types": "workspace:*",
 		"better-auth": "^1.6.10",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
@@ -40,12 +43,20 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.1",
 		"@types/luxon": "^3.7.1",
 		"@types/node": "^20.11.17",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@vitejs/plugin-react": "^6.0.1",
+		"@vitest/coverage-v8": "4.1.7",
+		"@vitest/ui": "4.1.7",
+		"jsdom": "^29.1.1",
+		"msw": "^2.14.6",
 		"typescript": "~6.0.2",
-		"vite": "^8.0.10"
+		"vite": "^8.0.10",
+		"vitest": "^4.1.7"
 	}
 }

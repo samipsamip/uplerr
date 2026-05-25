@@ -31,8 +31,7 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 			},
 			200,
 		);
-	} catch (e) {
-		console.log(e);
+	} catch {
 		return c.json(
 			{
 				message: 'Error fetching user profile, please try again later',

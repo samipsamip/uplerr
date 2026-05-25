@@ -67,20 +67,15 @@ export function CvEmptyState() {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					{isUploading ? (
-						<Button variant="ghost" size="sm" disabled>
-							Change
-						</Button>
-					) : (
-						<Button variant="ghost" size="sm" asChild>
-							<label htmlFor="upload-cv">Change</label>
-						</Button>
-					)}
+					<Button variant="ghost" size="sm" asChild disabled={isUploading}>
+						<label htmlFor="upload-cv">Change</label>
+					</Button>
 					<Button
 						size="sm"
 						className="gap-1.5"
 						onClick={onConfirm}
 						disabled={isUploading}
+						type="button"
 					>
 						{isUploading ? (
 							<Loader2 className="size-3.5 animate-spin" />
