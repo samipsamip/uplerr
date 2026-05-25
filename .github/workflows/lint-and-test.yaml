@@ -4,9 +4,7 @@ on:
     branches:
       - main
       - feature/*
-  pull_request:
-    branches:
-      - main
+
 jobs:
   lint-and-test:
     name: Lint and Test Code
