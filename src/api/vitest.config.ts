@@ -17,6 +17,7 @@ export default defineConfig({
 				'src/lib/auth.ts',
 				'src/lib/upload-utils.ts',
 				'src/lib/middleware.ts',
+				'src/lib/lllm/*',
 			],
 			thresholds: {
 				lines: 80,

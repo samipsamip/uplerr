@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { PDFParse } from 'pdf-parse';
+import { PDFParse, type TextResult } from 'pdf-parse';
 
 import {
 	deleteResumeFromBucket,
@@ -12,7 +12,10 @@ import {
 	userProfilePublicFields,
 } from '../../schemas/profiles.schema';
 import db from '../../utils/db';
-import { ResumeValidationError } from '../../utils/error-utils';
+import {
+	ResumeExtractionError,
+	ResumeValidationError,
+} from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
 
 const validatePdf = async (buffer: Uint8Array): Promise<void> => {
@@ -32,6 +35,25 @@ const validatePdf = async (buffer: Uint8Array): Promise<void> => {
 			'CORRUPTED',
 			'The provided PDF appears to be corrupted. Please try again with a different file.',
 		);
+	} finally {
+		await parser?.destroy();
+	}
+};
+
+export const extractTextFromPDF = async (
+	file: File,
+): Promise<TextResult['text']> => {
+	const buffer = new Uint8Array(await file.arrayBuffer());
+	let parser: InstanceType<typeof PDFParse> | null = null;
+	try {
+		parser = new PDFParse(buffer);
+		const rawText = await parser.getText();
+		if (!rawText?.text || rawText?.text === '') {
+			return '';
+		}
+		return rawText.text;
+	} catch {
+		throw new ResumeExtractionError('Error extracting text from resume!');
 	} finally {
 		await parser?.destroy();
 	}

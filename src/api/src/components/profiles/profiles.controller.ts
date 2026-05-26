@@ -1,7 +1,12 @@
 import { factory } from '../../lib/factory';
-import { ResumeValidationError } from '../../utils/error-utils';
+import { llmService } from '../../lib/lllm';
+import {
+	ResumeExtractionError,
+	ResumeValidationError,
+} from '../../utils/error-utils';
 import {
 	createUserProfileFromCV,
+	extractTextFromPDF,
 	getActiveCvProfile,
 	getUserProfileById,
 	processResumeReplacement,
@@ -64,8 +69,26 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 	}
 	try {
 		await createUserProfileFromCV(resume, resume.name, user.id, profileId);
-		return c.json({ message: 'CV uploaded successfully.' }, 201);
+		const resumeExtractedText = await extractTextFromPDF(resume);
+		const claudeReply =
+			await llmService.extractDetailsFromResume(resumeExtractedText);
+		return c.json(
+			{
+				message: 'CV uploaded successfully.',
+				extractedText: resumeExtractedText,
+				claudeReply,
+			},
+			201,
+		);
 	} catch (error) {
+		if (error instanceof ResumeExtractionError) {
+			return c.json(
+				{
+					message: error.message,
+				},
+				400,
+			);
+		}
 		if (error instanceof ResumeValidationError) {
 			return c.json(
 				{ message: error.message },
@@ -76,6 +99,7 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 			{
 				message:
 					'An error occurred while uploading the resume. Please try again later.',
+				error,
 			},
 			500,
 		);

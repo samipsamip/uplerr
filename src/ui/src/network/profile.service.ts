@@ -22,7 +22,7 @@ export const postUpdateResume = async (resumePDF: FormData) => {
 
 export const postCreateProfileFromResume = async (resumePDF: FormData) => {
 	return api
-		.post('api/profile/upload-resume', { body: resumePDF })
+		.post('api/profile/upload-resume', { body: resumePDF, timeout: 120000 })
 		.json<{ message: string }>();
 };
 

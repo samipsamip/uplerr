@@ -7,3 +7,11 @@ export class ResumeValidationError extends Error {
 		this.name = 'ResumeValidationError';
 	}
 }
+
+export class ResumeExtractionError extends Error {
+	public readonly code = 'EXTRACTION_ERROR';
+	constructor(message: string) {
+		super(message);
+		this.name = 'ResumeExtractionError';
+	}
+}

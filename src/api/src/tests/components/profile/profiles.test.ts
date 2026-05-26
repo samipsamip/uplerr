@@ -30,6 +30,7 @@ vi.mock('../../../lib/upload-utils', () => ({
 // PDFParse must be a real constructor (arrow functions can't be called with new).
 const pdfMocks = vi.hoisted(() => ({
 	getInfo: vi.fn(),
+	getText: vi.fn(),
 	destroy: vi.fn(),
 }));
 
@@ -38,9 +39,22 @@ vi.mock('pdf-parse', () => ({
 		getInfo() {
 			return pdfMocks.getInfo();
 		}
+		getText() {
+			return pdfMocks.getText();
+		}
 		destroy() {
 			return pdfMocks.destroy();
 		}
+	},
+}));
+
+const llmMocks = vi.hoisted(() => ({
+	extractDetailsFromResume: vi.fn(),
+}));
+
+vi.mock('../../../lib/lllm', () => ({
+	llmService: {
+		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
 	},
 }));
 
@@ -61,7 +75,14 @@ beforeEach(async () => {
 	uploadMocks.uploadResumeToBucket.mockResolvedValue('uploads/test-resume.pdf');
 	uploadMocks.deleteResumeFromBucket.mockResolvedValue(undefined);
 	pdfMocks.getInfo.mockResolvedValue({ total: 1 });
+	pdfMocks.getText.mockResolvedValue({ text: 'Sample resume text' });
 	pdfMocks.destroy.mockResolvedValue(undefined);
+	llmMocks.extractDetailsFromResume.mockResolvedValue({
+		name: 'Test User',
+		skills: [],
+		experience: [],
+		education: [],
+	});
 });
 
 const { default: profileRoute } =
