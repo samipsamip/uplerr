@@ -151,6 +151,15 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 			},
 			500,
 		);
+	} catch {
+		return c.json(
+			{
+				message:
+					'An error occurred while uploading the resume. Please try again later.',
+				error,
+			},
+			500,
+		);
 	}
 });
 

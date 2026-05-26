@@ -49,6 +49,16 @@ vi.mock('../../../lib/lllm/claude', () => ({
 	},
 }));
 
+const llmMocks = vi.hoisted(() => ({
+	extractDetailsFromResume: vi.fn(),
+}));
+
+vi.mock('../../../lib/lllm', () => ({
+	llmService: {
+		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
+	},
+}));
+
 let db: TestDb;
 let userId: string;
 let profileId: string;
