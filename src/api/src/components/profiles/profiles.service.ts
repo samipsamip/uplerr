@@ -18,7 +18,7 @@ import {
 } from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
 
-const validatePdf = async (buffer: Uint8Array): Promise<void> => {
+export const validatePdf = async (buffer: Uint8Array): Promise<void> => {
 	let parser: InstanceType<typeof PDFParse> | null = null;
 	try {
 		parser = new PDFParse(buffer);
@@ -79,27 +79,6 @@ export const getActiveCvProfile = async (profileId: string) => {
 			),
 		)
 		.limit(1);
-};
-
-export const createUserProfileFromCV = async (
-	file: Blob,
-	fileName: string,
-	userId: string,
-	profileId: string,
-) => {
-	const buffer = new Uint8Array(await file.arrayBuffer());
-	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-	await validatePdf(buffer);
-
-	const resumeKey = await uploadResumeToBucket(file, userId);
-
-	await db.insert(cvProfileSchema).values({
-		profile_id: profileId,
-		original_filename: fileName,
-		resume_key: resumeKey,
-		resume_hash: hash,
-		is_active: true,
-	});
 };
 
 export const processResumeReplacement = async (

@@ -78,6 +78,7 @@ beforeEach(async () => {
 	pdfMocks.getText.mockResolvedValue({ text: 'Sample resume text' });
 	pdfMocks.destroy.mockResolvedValue(undefined);
 	llmMocks.extractDetailsFromResume.mockResolvedValue({
+		isValid: true,
 		name: 'Test User',
 		skills: [],
 		experience: [],
@@ -291,5 +292,86 @@ describe('POST /api/profile/update-resume', () => {
 		expect(
 			allCvs.find((cv) => cv.original_filename === 'resume.pdf')?.is_active,
 		).toBe(true);
+	});
+});
+
+const makeVerifyRequest = (body: object) =>
+	profileRoute.request('/resume', {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(body),
+	});
+
+describe('PATCH /api/profile/resume', () => {
+	it('returns 404 when no active CV exists', async () => {
+		const res = await makeVerifyRequest({});
+		expect(res.status).toBe(404);
+	});
+
+	it('sets is_verified to true without changing structured_data when body has no structuredData', async () => {
+		await db.insert(cvProfileSchema).values({
+			profile_id: profileId,
+			original_filename: 'cv.pdf',
+			structured_data: { name: 'Original' },
+			is_active: true,
+		});
+
+		const res = await makeVerifyRequest({});
+
+		expect(res.status).toBe(200);
+		const [cv] = await db.select().from(cvProfileSchema);
+		expect(cv.is_verified).toBe(true);
+		expect((cv.structured_data as { name: string }).name).toBe('Original');
+	});
+
+	it('sets is_verified and updates structured_data when structuredData is provided', async () => {
+		await db.insert(cvProfileSchema).values({
+			profile_id: profileId,
+			original_filename: 'cv.pdf',
+			structured_data: { name: 'Old Name' },
+			is_active: true,
+		});
+
+		const updatedData = {
+			name: 'New Name',
+			skills: ['TypeScript'],
+			experience: [],
+			education: [],
+		};
+
+		const res = await makeVerifyRequest({ structuredData: updatedData });
+
+		expect(res.status).toBe(200);
+		const [cv] = await db.select().from(cvProfileSchema);
+		expect(cv.is_verified).toBe(true);
+		expect((cv.structured_data as { name: string }).name).toBe('New Name');
+	});
+
+	it('only verifies the active CV, not inactive ones', async () => {
+		await db.insert(cvProfileSchema).values([
+			{
+				profile_id: profileId,
+				original_filename: 'old.pdf',
+				is_active: false,
+				is_verified: false,
+			},
+			{
+				profile_id: profileId,
+				original_filename: 'current.pdf',
+				is_active: true,
+				is_verified: false,
+			},
+		]);
+
+		const res = await makeVerifyRequest({});
+
+		expect(res.status).toBe(200);
+		const all = await db.select().from(cvProfileSchema);
+		expect(
+			all.find((cv) => cv.original_filename === 'current.pdf')?.is_verified,
+		).toBe(true);
+		expect(
+			all.find((cv) => cv.original_filename === 'old.pdf')?.is_verified,
+		).toBe(false);
 	});
 });

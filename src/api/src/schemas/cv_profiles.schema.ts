@@ -20,6 +20,7 @@ export const cvProfileSchema = pgTable('cv_profiles', {
 	resume_hash: varchar('resume_hash', { length: 64 }),
 	raw_text: text('raw_text'),
 	structured_data: jsonb('structured_data'),
+	is_verified: boolean('is_verified'),
 	is_active: boolean('is_active').default(true).notNull(),
 	uploaded_at: timestamp('uploaded_at', { withTimezone: true })
 		.defaultNow()

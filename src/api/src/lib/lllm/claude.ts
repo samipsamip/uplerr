@@ -1,37 +1,13 @@
 import { z, ZodType } from 'zod';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { resumeStructuredDataSchema } from '@uppler/types';
 
 type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
-const ANTHROPIC_MODEL = 'claude-haiku-4-5';
-const ResumeExtractionSchema = z.object({
-	name: z.string(),
-	email: z.string().optional(),
-	phone: z.string().optional(),
-	location: z.string().optional(),
-	links: z
-		.object({
-			linkedin: z.string().optional(),
-			github: z.string().optional(),
-			portfolio: z.string().optional(),
-		})
-		.optional(),
-	skills: z.array(z.string()),
-	experience: z.array(
-		z.object({
-			company: z.string(),
-			role: z.string(),
-			duration: z.string().optional(),
-			description: z.string().optional(),
-		}),
-	),
-	education: z.array(
-		z.object({
-			institution: z.string(),
-			degree: z.string(),
-			year: z.string().optional(),
-		}),
-	),
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+
+const ResumeExtractionSchema = resumeStructuredDataSchema.extend({
+	isValid: z.boolean(),
 });
 
 export type ResumeData = z.infer<typeof ResumeExtractionSchema>;

@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ResumeStructuredData } from '@uppler/types';
 
 import {
 	getUserProfile,
+	patchVerifyResume,
 	postCreateProfileFromResume,
 	postUpdateResume,
 } from '@/network/profile.service';
@@ -11,11 +13,16 @@ export const useUpdateResume = () =>
 		mutationFn: async (formData: FormData) => await postUpdateResume(formData),
 	});
 
-export const useCreateProfileFromResume = () => {
-	const queryClient = useQueryClient();
-
-	return useMutation({
+export const useCreateProfileFromResume = () =>
+	useMutation({
 		mutationFn: postCreateProfileFromResume,
+	});
+
+export const useVerifyResume = () => {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (structuredData?: ResumeStructuredData) =>
+			patchVerifyResume(structuredData),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['userProfile'] });
 		},

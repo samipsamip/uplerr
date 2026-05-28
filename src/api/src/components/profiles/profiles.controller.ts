@@ -1,12 +1,15 @@
+import { eq } from 'drizzle-orm';
+import { type ResumeStructuredData } from '@uppler/types';
+
 import { factory } from '../../lib/factory';
-import { llmService } from '../../lib/lllm';
 import {
-	ResumeExtractionError,
-	ResumeValidationError,
-} from '../../utils/error-utils';
+	createResumeExtractionFSM,
+	ResumeTransitionState,
+} from '../../lib/fsm/ResumeExtractionFSM';
+import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
+import db from '../../utils/db';
+import { ResumeValidationError } from '../../utils/error-utils';
 import {
-	createUserProfileFromCV,
-	extractTextFromPDF,
 	getActiveCvProfile,
 	getUserProfileById,
 	processResumeReplacement,
@@ -67,39 +70,72 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 			413,
 		);
 	}
+
 	try {
-		await createUserProfileFromCV(resume, resume.name, user.id, profileId);
-		const resumeExtractedText = await extractTextFromPDF(resume);
-		const claudeReply =
-			await llmService.extractDetailsFromResume(resumeExtractedText);
-		return c.json(
-			{
-				message: 'CV uploaded successfully.',
-				extractedText: resumeExtractedText,
-				claudeReply,
-			},
-			201,
-		);
-	} catch (error) {
-		if (error instanceof ResumeExtractionError) {
+		const machine = createResumeExtractionFSM({
+			file: resume,
+			userId: user.id,
+			profileId,
+		});
+
+		await machine.run();
+
+		if (machine.value === ResumeTransitionState.DONE) {
 			return c.json(
 				{
-					message: error.message,
+					message: 'CV uploaded successfully.',
+					structuredData: machine.structuredData,
+				},
+				201,
+			);
+		}
+
+		if (machine.value === ResumeTransitionState.RESUME_VALIDATION_ERROR) {
+			const err = machine.error;
+			if (err instanceof ResumeValidationError && err.code === 'PAGE_LIMIT') {
+				return c.json({ message: err.message }, 413);
+			}
+			return c.json(
+				{ message: err instanceof Error ? err.message : 'Invalid PDF.' },
+				400,
+			);
+		}
+
+		if (machine.value === ResumeTransitionState.RESUME_EXTRACTION_ERROR) {
+			const err = machine.error;
+			return c.json(
+				{
+					message:
+						err instanceof Error
+							? err.message
+							: 'Failed to extract text from resume.',
 				},
 				400,
 			);
 		}
-		if (error instanceof ResumeValidationError) {
+
+		if (machine.value === ResumeTransitionState.RESUME_PARSE_FAILED) {
 			return c.json(
-				{ message: error.message },
-				error.code === 'PAGE_LIMIT' ? 413 : 400,
+				{
+					message:
+						'The uploaded document does not appear to be a valid resume.',
+				},
+				422,
 			);
 		}
+
 		return c.json(
 			{
 				message:
 					'An error occurred while uploading the resume. Please try again later.',
-				error,
+			},
+			500,
+		);
+	} catch {
+		return c.json(
+			{
+				message:
+					'An error occurred while uploading the resume. Please try again later.',
 			},
 			500,
 		);
@@ -150,6 +186,39 @@ export const updateUserResume = factory.createHandlers(async (c) => {
 			{
 				message:
 					'An error occurred while uploading the resume. Please try again later.',
+			},
+			500,
+		);
+	}
+});
+
+export const verifyUserResume = factory.createHandlers(async (c) => {
+	const profileId = c.get('profileId');
+	const body = await c.req.json<{ structuredData?: ResumeStructuredData }>();
+
+	const [active] = await getActiveCvProfile(profileId);
+	if (!active) {
+		return c.json({ message: 'No active CV found.' }, 404);
+	}
+
+	try {
+		await db
+			.update(cvProfileSchema)
+			.set({
+				is_verified: true,
+				...(body.structuredData
+					? { structured_data: body.structuredData }
+					: {}),
+				updated_at: new Date(),
+			})
+			.where(eq(cvProfileSchema.id, active.id));
+
+		return c.json({ message: 'CV verified successfully.' }, 200);
+	} catch {
+		return c.json(
+			{
+				message:
+					'An error occurred while verifying the resume. Please try again later.',
 			},
 			500,
 		);

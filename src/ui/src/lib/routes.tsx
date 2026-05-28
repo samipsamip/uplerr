@@ -18,6 +18,7 @@ import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
 import Dashboard from '@/pages/dashboard/Dashboard';
 import Roadmaps from '@/pages/dashboard/Roadmaps';
 import Skills from '@/pages/dashboard/Skills';
+import SkillsReview from '@/pages/dashboard/SkillsReview';
 import ErrorPage from '@/pages/ErrorPage';
 
 let _sessionCache: { value: unknown; expiresAt: number } | null = null;
@@ -126,6 +127,10 @@ const privateRoutes: RouteObject[] = [
 			{
 				path: 'skills',
 				Component: Skills,
+			},
+			{
+				path: 'skills/review',
+				Component: SkillsReview,
 			},
 		],
 	},
