@@ -52,6 +52,16 @@ function ReviewContent({
 		}
 	};
 
+	const summary = [
+		data.skills.length > 0 && `${data.skills.length} skills`,
+		data.experience.length > 0 &&
+			`${data.experience.length} ${data.experience.length === 1 ? 'role' : 'roles'}`,
+		data.education.length > 0 &&
+			`${data.education.length} ${data.education.length === 1 ? 'qualification' : 'qualifications'}`,
+	]
+		.filter(Boolean)
+		.join(' · ');
+
 	return (
 		<div className="flex flex-1 flex-col overflow-hidden">
 			{/* Sticky header */}
