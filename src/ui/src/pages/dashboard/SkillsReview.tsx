@@ -8,16 +8,14 @@ import { ReviewEducationSection } from '@/components/dashboard/resume-review/rev
 import { ReviewExperienceSection } from '@/components/dashboard/resume-review/review-experience-section';
 import { ReviewProfileSection } from '@/components/dashboard/resume-review/review-profile-section';
 import { ReviewSkillsSection } from '@/components/dashboard/resume-review/review-skills-section';
-import { TopBar } from '@/components/dashboard/top-bar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useVerifyResume } from '@/query/profile.query';
 
 import Layout from './Layout';
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
 	return (
-		<p className="text-muted-foreground mb-3 text-xs font-medium uppercase tracking-wider">
+		<p className="text-muted-foreground/60 mb-4 text-[11px] font-semibold uppercase tracking-[0.08em]">
 			{children}
 		</p>
 	);
@@ -45,17 +43,66 @@ function ReviewContent({ initial }: { initial: ResumeStructuredData }) {
 		}
 	};
 
-	return (
-		<>
-			<TopBar
-				title="Review extracted data"
-				description="Check what we pulled from your CV. Edit anything that looks off, then confirm."
-			/>
+	const summary = [
+		data.skills.length > 0 && `${data.skills.length} skills`,
+		data.experience.length > 0 &&
+			`${data.experience.length} ${data.experience.length === 1 ? 'role' : 'roles'}`,
+		data.education.length > 0 &&
+			`${data.education.length} ${data.education.length === 1 ? 'qualification' : 'qualifications'}`,
+	]
+		.filter(Boolean)
+		.join(' · ');
 
-			<div className="flex flex-col gap-6 p-6 pb-28 md:p-8 md:pb-28">
-				<Card className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-					<CardContent className="p-5">
-						<SectionHeading>Profile</SectionHeading>
+	return (
+		<div className="flex flex-1 flex-col">
+			{/* Sticky header with page title centred */}
+			<div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 border-border/40 sticky top-0 z-10 shrink-0 border-b backdrop-blur-sm">
+				<div className="relative flex items-center px-6 py-3 md:px-8">
+					<button
+						type="button"
+						onClick={() => navigate('/skills', { replace: true })}
+						className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
+					>
+						<ArrowLeft className="size-4" />
+						Back
+					</button>
+
+					<span className="pointer-events-none absolute inset-x-0 text-center text-sm font-medium">
+						Review your CV
+					</span>
+
+					<div className="ml-auto">
+						<Button
+							onClick={onConfirm}
+							disabled={isPending}
+							size="sm"
+							className="gap-1.5"
+						>
+							{isPending ? (
+								<Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<CheckCircle2 className="size-3.5" />
+							)}
+							{isDirty ? 'Save & confirm' : 'Looks good'}
+						</Button>
+					</div>
+				</div>
+			</div>
+
+			{/* Scrollable content */}
+			<div className="flex-1 overflow-auto">
+				<div className="mx-auto max-w-2xl px-6 py-8 md:px-8">
+					{/* Summary line */}
+					{summary && (
+						<p className="text-muted-foreground/60 mb-8 text-xs">
+							AI extracted: {summary}. Edit anything that looks off, then
+							confirm.
+						</p>
+					)}
+
+					{/* Profile */}
+					<section>
+						<SectionLabel>Profile</SectionLabel>
 						<ReviewProfileSection
 							data={{
 								name: data.name,
@@ -68,62 +115,47 @@ function ReviewContent({ initial }: { initial: ResumeStructuredData }) {
 								setData((prev) => ({ ...prev, ...updated }))
 							}
 						/>
-					</CardContent>
-				</Card>
+					</section>
 
-				<Card className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-					<CardContent className="p-5">
-						<SectionHeading>Skills ({data.skills.length})</SectionHeading>
+					<div className="my-10" />
+
+					{/* Skills */}
+					<section>
+						<SectionLabel>
+							Skills{data.skills.length > 0 && ` · ${data.skills.length}`}
+						</SectionLabel>
 						<ReviewSkillsSection
 							skills={data.skills}
 							onChange={(skills) => set('skills', skills)}
 						/>
-					</CardContent>
-				</Card>
+					</section>
 
-				{data.experience.length > 0 && (
-					<Card className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-						<CardContent className="p-5">
-							<SectionHeading>Experience</SectionHeading>
-							<ReviewExperienceSection
-								experience={data.experience}
-								onChange={(exp) => set('experience', exp)}
-							/>
-						</CardContent>
-					</Card>
-				)}
+					<div className="my-10" />
 
-				<Card className="border-border/60 rounded-xl border shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-					<CardContent className="p-5">
-						<SectionHeading>Education</SectionHeading>
+					{/* Experience */}
+					<section>
+						<SectionLabel>Experience</SectionLabel>
+						<ReviewExperienceSection
+							experience={data.experience}
+							onChange={(exp) => set('experience', exp)}
+						/>
+					</section>
+
+					<div className="my-10" />
+
+					{/* Education */}
+					<section>
+						<SectionLabel>Education</SectionLabel>
 						<ReviewEducationSection
 							education={data.education}
 							onChange={(edu) => set('education', edu)}
 						/>
-					</CardContent>
-				</Card>
-			</div>
+					</section>
 
-			<div className="border-border/60 bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed bottom-0 left-0 right-0 z-10 flex items-center justify-between border-t px-6 py-4 backdrop-blur-sm md:px-8">
-				<button
-					type="button"
-					onClick={() => navigate('/skills', { replace: true })}
-					className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
-				>
-					<ArrowLeft className="size-4" />
-					Back to skills
-				</button>
-
-				<Button onClick={onConfirm} disabled={isPending} className="gap-2">
-					{isPending ? (
-						<Loader2 className="size-4 animate-spin" />
-					) : (
-						<CheckCircle2 className="size-4" />
-					)}
-					{isDirty ? 'Save changes & confirm' : 'Looks good, confirm'}
-				</Button>
+					<div className="h-16" />
+				</div>
 			</div>
-		</>
+		</div>
 	);
 }
 

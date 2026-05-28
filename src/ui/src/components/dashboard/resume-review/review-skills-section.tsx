@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 interface ReviewSkillsSectionProps {
 	skills: string[];
@@ -32,15 +31,13 @@ export function ReviewSkillsSection({
 			{skills.map((skill) => (
 				<span
 					key={skill}
-					className={cn(
-						'bg-accent/[0.08] text-accent group flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium',
-					)}
+					className="bg-foreground/[0.07] text-foreground/80 flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm"
 				>
 					{skill}
 					<button
 						type="button"
 						onClick={() => remove(skill)}
-						className="text-accent/50 hover:text-accent ml-0.5 transition-colors"
+						className="text-foreground/30 hover:text-foreground/70 ml-0.5 transition-colors"
 						aria-label={`Remove ${skill}`}
 					>
 						<X className="size-3" />
@@ -60,7 +57,7 @@ export function ReviewSkillsSection({
 								setAdding(false);
 							}
 						}}
-						className="h-7 w-32 rounded-full px-3 text-sm"
+						className="h-7 w-36 text-sm"
 						placeholder="Skill name"
 						autoFocus
 						onBlur={commit}
@@ -70,7 +67,7 @@ export function ReviewSkillsSection({
 				<button
 					type="button"
 					onClick={() => setAdding(true)}
-					className="border-border text-muted-foreground hover:text-foreground hover:border-border/80 flex items-center gap-1 rounded-full border border-dashed px-3 py-1 text-sm transition-colors"
+					className="border-border text-muted-foreground hover:text-foreground flex items-center gap-1 rounded-md border border-dashed px-2.5 py-1 text-sm transition-colors"
 				>
 					<Plus className="size-3" />
 					Add skill

@@ -1,11 +1,6 @@
 import { and, eq } from 'drizzle-orm';
-import crypto from 'node:crypto';
 import { PDFParse, type TextResult } from 'pdf-parse';
 
-import {
-	deleteResumeFromBucket,
-	uploadResumeToBucket,
-} from '../../lib/upload-utils';
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import {
 	profileSchema,
@@ -79,61 +74,4 @@ export const getActiveCvProfile = async (profileId: string) => {
 			),
 		)
 		.limit(1);
-};
-
-export const processResumeReplacement = async (
-	file: Blob,
-	fileName: string,
-	userId: string,
-	profileId: string,
-) => {
-	const buffer = new Uint8Array(await file.arrayBuffer());
-	const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-
-	const [activeProfile] = await db
-		.select({
-			id: cvProfileSchema.id,
-			resume_key: cvProfileSchema.resume_key,
-			resume_hash: cvProfileSchema.resume_hash,
-		})
-		.from(cvProfileSchema)
-		.where(
-			and(
-				eq(cvProfileSchema.profile_id, profileId),
-				eq(cvProfileSchema.is_active, true),
-				notDeleted(cvProfileSchema),
-			),
-		)
-		.limit(1);
-
-	if (activeProfile?.resume_hash === hash) {
-		return { isDuplicate: true };
-	}
-
-	await validatePdf(buffer);
-
-	const newKey = await uploadResumeToBucket(file, userId);
-
-	if (activeProfile?.resume_key) {
-		await deleteResumeFromBucket(activeProfile.resume_key);
-	}
-
-	await db.transaction(async (tx) => {
-		if (activeProfile?.id) {
-			await tx
-				.update(cvProfileSchema)
-				.set({ is_active: false, updated_at: new Date() })
-				.where(eq(cvProfileSchema.id, activeProfile.id));
-		}
-
-		await tx.insert(cvProfileSchema).values({
-			profile_id: profileId,
-			original_filename: fileName,
-			resume_key: newKey,
-			resume_hash: hash,
-			is_active: true,
-		});
-	});
-
-	return { isDuplicate: false };
 };

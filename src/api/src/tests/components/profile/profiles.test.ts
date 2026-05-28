@@ -129,6 +129,7 @@ describe('GET /api/profile', () => {
 			original_filename: 'my-cv.pdf',
 			structured_data: { name: 'Test' },
 			is_active: true,
+			is_verified: false,
 		});
 
 		const res = await profileRoute.request('/');
@@ -137,6 +138,8 @@ describe('GET /api/profile', () => {
 		const body = await res.json();
 		expect(body.cv.filename).toBe('my-cv.pdf');
 		expect(body.cv.hasStructuredData).toBe(true);
+		expect(body.cv.is_verified).toBe(false);
+		expect(body.cv.structuredData).toEqual({ name: 'Test' });
 	});
 
 	it('returns 500 when an unexpected error occurs', async () => {
@@ -206,69 +209,22 @@ describe('POST /api/profile/upload-resume', () => {
 
 		expect(res.status).toBe(500);
 	});
-});
 
-describe('POST /api/profile/update-resume', () => {
-	it('returns 400 when no file is provided', async () => {
-		const res = await profileRoute.request('/update-resume', {
-			method: 'POST',
-			body: new FormData(),
-		});
-		expect(res.status).toBe(400);
-	});
-
-	it('returns 400 when file is empty', async () => {
-		const res = await makeResumeRequest('/update-resume', emptyPdf);
-		expect(res.status).toBe(400);
-	});
-
-	it('returns 413 when file exceeds 2MB', async () => {
-		const res = await makeResumeRequest('/update-resume', largePdf);
-		expect(res.status).toBe(413);
-	});
-
-	it('returns 201 without re-uploading when the same resume is submitted', async () => {
-		// Upload once to establish the hash
+	it('returns 200 with duplicate message when the same resume is uploaded again', async () => {
 		await makeResumeRequest('/upload-resume', validPdf);
 		vi.clearAllMocks();
 
-		// Submit the exact same content again
-		const res = await makeResumeRequest('/update-resume', validPdf);
+		const res = await makeResumeRequest('/upload-resume', validPdf);
 
-		expect(res.status).toBe(201);
+		expect(res.status).toBe(200);
 		expect((await res.json()).message).toBe(
 			'This resume has already been uploaded.',
 		);
 		expect(uploadMocks.uploadResumeToBucket).not.toHaveBeenCalled();
+		expect(llmMocks.extractDetailsFromResume).not.toHaveBeenCalled();
 	});
 
-	it('returns 413 when PDF exceeds page limit', async () => {
-		pdfMocks.getInfo.mockResolvedValue({ total: 6 });
-
-		const res = await makeResumeRequest('/update-resume', validPdf);
-
-		expect(res.status).toBe(413);
-		expect(uploadMocks.uploadResumeToBucket).not.toHaveBeenCalled();
-	});
-
-	it('returns 400 when PDF is corrupted', async () => {
-		pdfMocks.getInfo.mockRejectedValue(new Error('parse error'));
-
-		const res = await makeResumeRequest('/update-resume', validPdf);
-
-		expect(res.status).toBe(400);
-	});
-
-	it('returns 500 when an unexpected error occurs during upload', async () => {
-		uploadMocks.uploadResumeToBucket.mockRejectedValue(new Error('S3 failure'));
-
-		const res = await makeResumeRequest('/update-resume', validPdf);
-
-		expect(res.status).toBe(500);
-	});
-
-	it('deactivates the old CV and inserts a new one on replacement', async () => {
-		// Seed an existing active CV
+	it('deactivates old CV and inserts new one when a different resume is uploaded', async () => {
 		await db.insert(cvProfileSchema).values({
 			profile_id: profileId,
 			original_filename: 'old.pdf',
@@ -277,7 +233,7 @@ describe('POST /api/profile/update-resume', () => {
 			is_active: true,
 		});
 
-		const res = await makeResumeRequest('/update-resume', validPdf);
+		const res = await makeResumeRequest('/upload-resume', validPdf);
 
 		expect(res.status).toBe(201);
 		expect(uploadMocks.deleteResumeFromBucket).toHaveBeenCalledWith(

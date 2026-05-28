@@ -7,6 +7,8 @@ export type UserProfile = {
 		filename: string;
 		hasStructuredData: boolean;
 		uploadedAt: string;
+		is_verified: boolean;
+		structuredData: ResumeStructuredData | null;
 	} | null;
 	cv_generations_used: number;
 	full_name: string;
@@ -14,12 +16,6 @@ export type UserProfile = {
 	study_plans_used: number;
 	subscription_tier: 'free' | 'pro' | 'premium';
 	usage_reset_at: string | null;
-};
-
-export const postUpdateResume = async (resumePDF: FormData) => {
-	return api
-		.post('api/profile/update-resume', { body: resumePDF })
-		.json<{ message: string }>();
 };
 
 export const postCreateProfileFromResume = async (resumePDF: FormData) => {

@@ -30,48 +30,45 @@ function ExperienceEntry({
 
 	if (!editing) {
 		return (
-			<div className="group relative flex gap-4">
-				<div className="flex flex-col items-center pt-1">
-					<div className="bg-accent size-2 rounded-full" />
-					<div className="bg-border mt-1 w-px flex-1" />
-				</div>
-				<div className="flex-1 pb-6">
-					<div className="flex items-start justify-between gap-2">
-						<div>
-							<p className="font-medium leading-tight">{entry.role}</p>
-							<p className="text-muted-foreground mt-0.5 text-sm">
-								{entry.company}
-							</p>
-							{entry.duration && (
-								<p className="text-muted-foreground mt-0.5 text-xs">
-									{entry.duration}
-								</p>
-							)}
-						</div>
-						<div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-							<button
-								type="button"
-								onClick={() => setEditing(true)}
-								className="text-muted-foreground hover:text-foreground"
-								aria-label="Edit entry"
-							>
-								<Pencil className="size-3.5" />
-							</button>
-							<button
-								type="button"
-								onClick={onRemove}
-								className="text-muted-foreground hover:text-destructive"
-								aria-label="Remove entry"
-							>
-								<Trash2 className="size-3.5" />
-							</button>
-						</div>
-					</div>
+			<div className="group flex items-start justify-between gap-3">
+				<div className="flex-1">
+					<p className="text-sm font-medium leading-snug">
+						{entry.role}
+						{entry.company && (
+							<span className="text-muted-foreground font-normal">
+								{' '}
+								at {entry.company}
+							</span>
+						)}
+					</p>
+					{entry.duration && (
+						<p className="text-muted-foreground mt-0.5 text-xs">
+							{entry.duration}
+						</p>
+					)}
 					{entry.description && (
-						<p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+						<p className="text-muted-foreground/80 mt-2 text-[13px] leading-relaxed">
 							{entry.description}
 						</p>
 					)}
+				</div>
+				<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+					<button
+						type="button"
+						onClick={() => setEditing(true)}
+						className="text-muted-foreground hover:text-foreground"
+						aria-label="Edit entry"
+					>
+						<Pencil className="size-3.5" />
+					</button>
+					<button
+						type="button"
+						onClick={onRemove}
+						className="text-muted-foreground hover:text-destructive"
+						aria-label="Remove entry"
+					>
+						<Trash2 className="size-3.5" />
+					</button>
 				</div>
 			</div>
 		);
@@ -169,23 +166,30 @@ export function ReviewExperienceSection({
 	}
 
 	return (
-		<div className="flex flex-col gap-1">
+		<div className="divide-border/30 flex flex-col divide-y">
 			{experience.map((entry, i) => (
-				<ExperienceEntry
-					key={`experience-${entry.role}`}
-					entry={entry}
-					onUpdate={(updated) => update(i, updated)}
-					onRemove={() => remove(i)}
-				/>
+				<div
+					key={`experience-${i}`}
+					className={i > 0 ? 'pt-5' : ''}
+					style={i < experience.length - 1 ? { paddingBottom: '1.25rem' } : {}}
+				>
+					<ExperienceEntry
+						entry={entry}
+						onUpdate={(updated) => update(i, updated)}
+						onRemove={() => remove(i)}
+					/>
+				</div>
 			))}
-			<button
-				type="button"
-				onClick={add}
-				className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1 self-start text-sm transition-colors"
-			>
-				<Plus className="size-3.5" />
-				Add position
-			</button>
+			<div className="pt-4">
+				<button
+					type="button"
+					onClick={add}
+					className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm transition-colors"
+				>
+					<Plus className="size-3.5" />
+					Add position
+				</button>
+			</div>
 		</div>
 	);
 }

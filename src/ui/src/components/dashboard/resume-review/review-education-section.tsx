@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, GraduationCap, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import type { ResumeStructuredData } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
@@ -30,42 +30,31 @@ function EducationEntry({
 
 	if (!editing) {
 		return (
-			<div className="group flex items-start gap-3">
-				<div className="bg-accent/[0.08] mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
-					<GraduationCap className="text-accent size-4" />
-				</div>
+			<div className="group flex items-start justify-between gap-3">
 				<div className="flex-1">
-					<div className="flex items-start justify-between gap-2">
-						<div>
-							<p className="font-medium leading-tight">{entry.degree}</p>
-							<p className="text-muted-foreground mt-0.5 text-sm">
-								{entry.institution}
-							</p>
-							{entry.year && (
-								<p className="text-muted-foreground mt-0.5 text-xs">
-									{entry.year}
-								</p>
-							)}
-						</div>
-						<div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-							<button
-								type="button"
-								onClick={() => setEditing(true)}
-								className="text-muted-foreground hover:text-foreground"
-								aria-label="Edit"
-							>
-								<Pencil className="size-3.5" />
-							</button>
-							<button
-								type="button"
-								onClick={onRemove}
-								className="text-muted-foreground hover:text-destructive"
-								aria-label="Remove"
-							>
-								<Trash2 className="size-3.5" />
-							</button>
-						</div>
-					</div>
+					<p className="text-sm font-medium leading-snug">{entry.degree}</p>
+					<p className="text-muted-foreground mt-0.5 text-xs">
+						{entry.institution}
+						{entry.year && ` · ${entry.year}`}
+					</p>
+				</div>
+				<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+					<button
+						type="button"
+						onClick={() => setEditing(true)}
+						className="text-muted-foreground hover:text-foreground"
+						aria-label="Edit"
+					>
+						<Pencil className="size-3.5" />
+					</button>
+					<button
+						type="button"
+						onClick={onRemove}
+						className="text-muted-foreground hover:text-destructive"
+						aria-label="Remove"
+					>
+						<Trash2 className="size-3.5" />
+					</button>
 				</div>
 			</div>
 		);

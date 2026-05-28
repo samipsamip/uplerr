@@ -35,11 +35,30 @@ vi.mock('../../../lib/upload-utils', () => ({
 
 const dbMocks = vi.hoisted(() => ({
 	values: vi.fn(),
+	selectReturn: vi.fn(),
 }));
+
+const selectChain = {
+	from: () => selectChain,
+	where: () => selectChain,
+	limit: () => dbMocks.selectReturn(),
+};
 
 vi.mock('../../../utils/db', () => ({
 	default: {
 		insert: vi.fn(() => ({ values: dbMocks.values })),
+		select: vi.fn(() => selectChain),
+		transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
+			const tx = {
+				insert: vi.fn(() => ({ values: dbMocks.values })),
+				update: vi.fn(() => ({
+					set: vi.fn(() => ({
+						where: vi.fn().mockResolvedValue(undefined),
+					})),
+				})),
+			};
+			await cb(tx);
+		}),
 	},
 }));
 
@@ -72,6 +91,7 @@ beforeEach(() => {
 	llmMocks.extractDetailsFromResume.mockResolvedValue(validLlmResult);
 	uploadMocks.uploadResumeToBucket.mockResolvedValue('uploads/resume.pdf');
 	dbMocks.values.mockResolvedValue(undefined);
+	dbMocks.selectReturn.mockResolvedValue([]); // no existing CV by default
 });
 
 describe('ResumeExtractionFSM — happy path', () => {

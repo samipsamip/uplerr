@@ -1,7 +1,8 @@
 /**
  * Resume Extraction FSM
  *
- * Drives a resume file through validation, LLM extraction, and cloud storage.
+ * Drives a resume file through validation, duplicate detection, LLM extraction,
+ * and cloud storage. Handles both first-time uploads and replacements.
  * Created per-request via createResumeExtractionFSM({ file, userId, profileId }).
  *
  * Flow:
@@ -11,15 +12,19 @@
  *     - ResumeValidationError → RESUME_VALIDATION_ERROR (terminal)
  *     - ResumeExtractionError → RESUME_EXTRACTION_ERROR (terminal)
  *     - Unexpected error    → ERROR (terminal)
- *  3. RESUME_PARSE_SUCCESS → LLM_EXTRACTION: raw text sent to the LLM.
+ *  3. RESUME_PARSE_SUCCESS → DUPLICATE_CHECK: queries DB for an active CV
+ *     with the same hash. If found → RESUME_DUPLICATE (terminal). Otherwise
+ *     stores any existing active CV info for replacement in UPLOAD_TO_CLOUD.
+ *  4. DUPLICATE_CHECK → LLM_EXTRACTION: raw text sent to the LLM.
  *     The LLM response must include { isValid: true } for processing to continue.
  *     - isValid: false → RESUME_PARSE_FAILED (terminal, document is not a resume)
- *  4. UPLOAD_TO_CLOUD → DONE: file uploaded to R2 and a cv_profiles row written
- *     to the DB with structured_data (isValid stripped out) and is_verified: false.
- *  5. DONE: terminal. The user is shown the extracted data for review.
- *     If they edit it, PATCH /profile/resume replaces the structured_data in DB.
- *     If they confirm as-is, no further action is needed.
+ *  5. LLM_EXTRACTION → UPLOAD_TO_CLOUD: file uploaded to R2. If an existing
+ *     active CV was found, it is deactivated and its file deleted from storage.
+ *     A new cv_profiles row is written with structured_data and is_verified: false.
+ *  6. DONE: terminal. The user reviews the extracted data.
+ *     PATCH /profile/resume persists edits and sets is_verified: true.
  */
+import { and, eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import {
 	type ResumeStructuredData,
@@ -33,17 +38,21 @@ import {
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import db from '../../utils/db';
 import {
+	ResumeDuplicateError,
 	ResumeExtractionError,
 	ResumeValidationError,
 } from '../../utils/error-utils';
+import { notDeleted } from '../../utils/helpers';
 import { llmService } from '../lllm';
-import { uploadResumeToBucket } from '../upload-utils';
+import { deleteResumeFromBucket, uploadResumeToBucket } from '../upload-utils';
 
 export const ResumeTransitionState = {
 	IDLE: 'idle',
 	RECEIVED: 'received',
 	PARSE_RESUME: 'parse_resume',
 	RESUME_PARSE_SUCCESS: 'resume_parse_success',
+	DUPLICATE_CHECK: 'duplicate_check',
+	RESUME_DUPLICATE: 'resume_duplicate',
 	RESUME_VALIDATION_ERROR: 'resume_validation_error',
 	RESUME_EXTRACTION_ERROR: 'resume_extraction_error',
 	RESUME_PARSE_FAILED: 'resume_parse_failed',
@@ -78,6 +87,7 @@ type ResumeExtractionContext = {
 	llmResult: Awaited<
 		ReturnType<typeof llmService.extractDetailsFromResume>
 	> | null;
+	existingCv: { id: string; resume_key: string | null } | null;
 };
 
 const createMachine = (stateMachineDefinition: MachineDefinition) => {
@@ -123,6 +133,7 @@ export const createResumeExtractionFSM = ({
 		hash: null,
 		rawText: null,
 		llmResult: null,
+		existingCv: null,
 	};
 
 	const machine = createMachine({
@@ -166,11 +177,46 @@ export const createResumeExtractionFSM = ({
 		},
 		[ResumeTransitionState.RESUME_PARSE_SUCCESS]: {
 			transition: {
-				targetState: ResumeTransitionState.LLM_EXTRACTION,
+				targetState: ResumeTransitionState.DUPLICATE_CHECK,
 				action: () => {
 					console.log(
-						'[ResumeExtractionFSM] Resume parsed successfully, moving to LLM extraction step',
+						'[ResumeExtractionFSM] Resume parsed successfully, checking for duplicates',
 					);
+				},
+			},
+		},
+		[ResumeTransitionState.DUPLICATE_CHECK]: {
+			transition: {
+				targetState: ResumeTransitionState.LLM_EXTRACTION,
+				errorTarget: (error: Error | string) => {
+					if (error instanceof ResumeDuplicateError)
+						return ResumeTransitionState.RESUME_DUPLICATE;
+					return ResumeTransitionState.ERROR;
+				},
+				action: async () => {
+					const [existing] = await db
+						.select({
+							id: cvProfileSchema.id,
+							resume_key: cvProfileSchema.resume_key,
+							resume_hash: cvProfileSchema.resume_hash,
+						})
+						.from(cvProfileSchema)
+						.where(
+							and(
+								eq(cvProfileSchema.profile_id, profileId),
+								eq(cvProfileSchema.is_active, true),
+								notDeleted(cvProfileSchema),
+							),
+						)
+						.limit(1);
+
+					if (existing?.resume_hash === ctx.hash) {
+						throw new ResumeDuplicateError();
+					}
+
+					ctx.existingCv = existing
+						? { id: existing.id, resume_key: existing.resume_key }
+						: null;
 				},
 			},
 		},
@@ -202,16 +248,29 @@ export const createResumeExtractionFSM = ({
 					const extractedResumeDetails = resumeStructuredDataSchema.parse(
 						ctx.llmResult,
 					);
-					await db.insert(cvProfileSchema).values({
-						profile_id: profileId,
-						original_filename: file.name,
-						resume_key: resumeKey,
-						resume_hash: ctx.hash,
-						raw_text: ctx.rawText,
-						structured_data: extractedResumeDetails,
-						is_verified: false,
-						is_active: true,
+
+					await db.transaction(async (tx) => {
+						if (ctx.existingCv) {
+							await tx
+								.update(cvProfileSchema)
+								.set({ is_active: false, updated_at: new Date() })
+								.where(eq(cvProfileSchema.id, ctx.existingCv.id));
+						}
+						await tx.insert(cvProfileSchema).values({
+							profile_id: profileId,
+							original_filename: file.name,
+							resume_key: resumeKey,
+							resume_hash: ctx.hash,
+							raw_text: ctx.rawText,
+							structured_data: extractedResumeDetails,
+							is_verified: false,
+							is_active: true,
+						});
 					});
+
+					if (ctx.existingCv?.resume_key) {
+						await deleteResumeFromBucket(ctx.existingCv.resume_key);
+					}
 				},
 			},
 		},

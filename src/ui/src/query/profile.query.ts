@@ -5,13 +5,7 @@ import {
 	getUserProfile,
 	patchVerifyResume,
 	postCreateProfileFromResume,
-	postUpdateResume,
 } from '@/network/profile.service';
-
-export const useUpdateResume = () =>
-	useMutation({
-		mutationFn: async (formData: FormData) => await postUpdateResume(formData),
-	});
 
 export const useCreateProfileFromResume = () =>
 	useMutation({
