@@ -156,7 +156,6 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 			{
 				message:
 					'An error occurred while uploading the resume. Please try again later.',
-				error,
 			},
 			500,
 		);
