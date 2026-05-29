@@ -51,11 +51,18 @@ vi.mock('../../../lib/lllm/claude', () => ({
 
 const llmMocks = vi.hoisted(() => ({
 	extractDetailsFromResume: vi.fn(),
+	inferSkillLevels: vi.fn(),
 }));
 
 vi.mock('../../../lib/lllm', () => ({
 	llmService: {
 		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
+	},
+}));
+
+vi.mock('../../../lib/lllm/claude', () => ({
+	default: class {
+		inferSkillLevels = llmMocks.inferSkillLevels;
 	},
 }));
 
