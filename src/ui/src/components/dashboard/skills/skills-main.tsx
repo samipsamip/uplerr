@@ -38,14 +38,14 @@ export default function SkillsMain() {
 	if (isLoading) return <Fallback />;
 	if (isError) return <ErrorPage />;
 
-	const cvFile =
-		skillData?.cv && Object.keys(skillData?.cv || {}).length > 0
-			? {
-					name: skillData?.cv?.filename || '',
-					uploadedAt:
-						formatUploadedDateToHuman(skillData?.cv?.uploadedAt) || '',
-				}
-			: undefined;
+	const cvFile = skillData?.cv
+		? {
+				name: skillData.cv.filename,
+				uploadedAt: formatUploadedDateToHuman(skillData.cv.uploadedAt) || '',
+				is_verified: skillData.cv.is_verified,
+				structuredData: skillData.cv.structuredData,
+			}
+		: undefined;
 
 	return (
 		<>

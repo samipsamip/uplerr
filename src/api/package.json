@@ -2,10 +2,11 @@
 	"name": "@uppler/api",
 	"type": "module",
 	"scripts": {
-		"dev": "tsx watch --env-file=.env src/index.ts",
+		"dev": "pnpm db:seed && tsx watch --env-file=.env src/index.ts",
 		"build": "tsc",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
+		"db:seed": "tsx --env-file=.env src/seed/skills.seed.ts",
 		"start": "node dist/index.js",
 		"lint": "eslint . --fix",
 		"typecheck": "tsc --noEmit",
@@ -15,16 +16,18 @@
 		"test:ui": "vitest --ui"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.98.0",
 		"@aws-sdk/client-s3": "^3.1052.0",
 		"@aws-sdk/s3-request-presigner": "^3.1052.0",
 		"@hono/node-server": "^1.19.14",
+		"@langfuse/client": "^5.3.0",
 		"@uppler/types": "workspace:*",
 		"better-auth": "^1.6.10",
 		"drizzle-orm": "^0.45.2",
 		"hono": "^4.12.18",
-		"pdf-parse": "^2.4.5",
 		"pg": "^8.20.0",
 		"resend": "^6.12.3",
+		"unpdf": "^1.6.2",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {

@@ -6,7 +6,12 @@ import { CvCard } from '@/components/dashboard/skills/cv-card';
 
 import { renderWithProviders } from '../../../helpers/render';
 
-const cvFile = { name: 'my-resume.pdf', uploadedAt: '2 days ago' };
+const cvFile = {
+	name: 'my-resume.pdf',
+	uploadedAt: '2 days ago',
+	is_verified: true,
+	structuredData: null,
+};
 
 const validPdf = new File(['pdf-content'], 'new-resume.pdf', {
 	type: 'application/pdf',

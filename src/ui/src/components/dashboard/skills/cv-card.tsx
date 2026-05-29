@@ -1,14 +1,25 @@
 import { useState } from 'react';
-import { FileText, Loader2, ShieldCheck, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import {
+	Clock,
+	Eye,
+	FileText,
+	Loader2,
+	ShieldCheck,
+	Upload,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import type { ResumeStructuredData } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
-import { useUpdateResume } from '@/query/profile.query';
+import { useCreateProfileFromResume } from '@/query/profile.query';
 
 export interface CvFile {
 	name: string;
 	uploadedAt: string;
+	is_verified: boolean;
+	structuredData: ResumeStructuredData | null;
 }
 
 interface CvCardProps {
@@ -23,7 +34,8 @@ function formatFileSize(bytes: number): string {
 export function CvCard({ cvFile }: CvCardProps) {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
-	const { mutateAsync } = useUpdateResume();
+	const { mutateAsync } = useCreateProfileFromResume();
+	const navigate = useNavigate();
 
 	const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const resume = e.target.files?.[0] ?? null;
@@ -40,7 +52,7 @@ export function CvCard({ cvFile }: CvCardProps) {
 		setSelectedFile(resume);
 	};
 
-	const onConfirm = () => {
+	const onConfirmReplace = () => {
 		if (!selectedFile) return;
 		setIsUploading(true);
 		const formData = new FormData();
@@ -49,6 +61,14 @@ export function CvCard({ cvFile }: CvCardProps) {
 			.then((res) => {
 				toast.success(res?.message ?? 'CV replaced successfully');
 				setSelectedFile(null);
+				if (res.structuredData) {
+					navigate('/skills/review', {
+						state: {
+							structuredData: res.structuredData,
+							skillMatchMeta: res.skillMatchMeta,
+						},
+					});
+				}
 			})
 			.catch((error: Error) => {
 				toast.error(error.message ?? 'Upload failed — please try again');
@@ -78,10 +98,32 @@ export function CvCard({ cvFile }: CvCardProps) {
 					</div>
 				</div>
 				<div className="flex shrink-0 items-center gap-3">
-					<span className="text-accent flex items-center gap-1 text-xs">
-						<ShieldCheck className="size-4" />
-						Verified
-					</span>
+					{cvFile.is_verified ? (
+						<span className="text-accent flex items-center gap-1 text-xs">
+							<ShieldCheck className="size-4" />
+							Verified
+						</span>
+					) : (
+						<span className="text-muted-foreground flex items-center gap-1 text-xs">
+							<Clock className="size-3.5" />
+							Needs review
+						</span>
+					)}
+					{cvFile.structuredData && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="gap-1.5"
+							onClick={() =>
+								navigate('/skills/review', {
+									state: { structuredData: cvFile.structuredData },
+								})
+							}
+						>
+							<Eye className="size-3.5" />
+							Review
+						</Button>
+					)}
 					{!selectedFile && (
 						<Button variant="outline" size="sm" className="gap-1.5" asChild>
 							<label htmlFor="replace-cv">
@@ -118,7 +160,7 @@ export function CvCard({ cvFile }: CvCardProps) {
 						<Button
 							size="sm"
 							className="gap-1.5"
-							onClick={onConfirm}
+							onClick={onConfirmReplace}
 							disabled={isUploading}
 						>
 							{isUploading && <Loader2 className="size-3.5 animate-spin" />}

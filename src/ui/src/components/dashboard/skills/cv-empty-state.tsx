@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
 import { FileText, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -15,6 +16,7 @@ export function CvEmptyState() {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
 	const { mutateAsync } = useCreateProfileFromResume();
+	const navigate = useNavigate();
 
 	const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const resume = e.target.files?.[0] ?? null;
@@ -40,6 +42,12 @@ export function CvEmptyState() {
 			.then((res) => {
 				toast.success(res?.message ?? 'CV uploaded successfully');
 				setSelectedFile(null);
+				navigate('/skills/review', {
+					state: {
+						structuredData: res.structuredData,
+						skillMatchMeta: res.skillMatchMeta,
+					},
+				});
 			})
 			.catch((error: Error) => {
 				toast.error(error.message ?? 'Upload failed — please try again');
