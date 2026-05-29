@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+import { DurationRangePicker } from './duration-range-picker';
+
 type Experience = ResumeStructuredData['experience'][number];
 
 const TECH_KEYWORDS = [
@@ -103,13 +105,15 @@ function ExperienceEntry({
 	onUpdate,
 	onRemove,
 	isLast,
+	autoEdit,
 }: {
 	entry: Experience;
 	onUpdate: (updated: Experience) => void;
 	onRemove: () => void;
 	isLast: boolean;
+	autoEdit?: boolean;
 }) {
-	const [editing, setEditing] = useState(false);
+	const [editing, setEditing] = useState(autoEdit ?? false);
 	const [draft, setDraft] = useState(entry);
 	const [expanded, setExpanded] = useState(false);
 
@@ -138,7 +142,7 @@ function ExperienceEntry({
 					{!isLast && <div className="bg-border/40 mt-2 min-h-8 w-px flex-1" />}
 				</div>
 				<div className={cn('flex-1', !isLast && 'pb-8')}>
-					<div className="border-border/50 bg-muted/40 flex flex-col gap-3 rounded-xl border p-4">
+					<div className="border-border/50 bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 						<div className="grid grid-cols-2 gap-3">
 							<div className="flex flex-col gap-1">
 								<label className="text-muted-foreground text-xs">Role</label>
@@ -158,20 +162,13 @@ function ExperienceEntry({
 									className="h-8 text-sm"
 								/>
 							</div>
-							<div className="flex flex-col gap-1">
+							<div className="col-span-2 flex flex-col gap-1">
 								<label className="text-muted-foreground text-xs">
 									Duration
 								</label>
-								<Input
-									value={draft.duration ?? ''}
-									onChange={(e) =>
-										setDraft({
-											...draft,
-											duration: e.target.value || undefined,
-										})
-									}
-									className="h-8 text-sm"
-									placeholder="e.g. Jan 2022 – Mar 2024"
+								<DurationRangePicker
+									value={draft.duration}
+									onChange={(v) => setDraft({ ...draft, duration: v })}
 								/>
 							</div>
 							<div className="col-span-2 flex flex-col gap-1">
@@ -186,7 +183,7 @@ function ExperienceEntry({
 											description: e.target.value || undefined,
 										})
 									}
-									className="border-input bg-input/30 text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-[80px] w-full rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
+									className="border-border/50 bg-muted/40 text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
 									placeholder="Key responsibilities or highlights"
 								/>
 							</div>
@@ -296,18 +293,26 @@ export function ReviewExperienceSection({
 	experience,
 	onChange,
 }: ReviewExperienceSectionProps) {
+	const [newIndex, setNewIndex] = useState<number | null>(null);
+
 	const update = (index: number, updated: Experience) => {
 		const next = [...experience];
 		next[index] = updated;
 		onChange(next);
+		if (index === newIndex) setNewIndex(null);
 	};
-	const remove = (index: number) =>
+	const remove = (index: number) => {
 		onChange(experience.filter((_, i) => i !== index));
-	const add = () =>
-		onChange([
+		if (index === newIndex) setNewIndex(null);
+	};
+	const add = () => {
+		const next = [
 			...experience,
 			{ company: '', role: '', duration: '', description: '' },
-		]);
+		];
+		onChange(next);
+		setNewIndex(next.length - 1);
+	};
 
 	if (experience.length === 0) {
 		return (
@@ -331,6 +336,7 @@ export function ReviewExperienceSection({
 					onUpdate={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
 					isLast={i === experience.length - 1}
+					autoEdit={i === newIndex}
 				/>
 			))}
 			<button

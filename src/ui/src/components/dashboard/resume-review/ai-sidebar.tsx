@@ -1,4 +1,13 @@
-import { CheckCircle2, Database, Sparkles } from 'lucide-react';
+import {
+	AlertCircle,
+	CheckCircle2,
+	Database,
+	GraduationCap,
+	Layers3,
+	Lightbulb,
+	Sparkles,
+	TrendingUp,
+} from 'lucide-react';
 import type { ResumeStructuredData } from '@uppler/types';
 
 import { Badge } from '@/components/ui/badge';
@@ -10,12 +19,84 @@ import {
 	categorizeSkills,
 	computeProfileStrength,
 	detectProfileType,
+	estimateYearsOfExperience,
 	strengthLabel,
 } from './utils';
 
 interface AiSidebarProps {
 	data: ResumeStructuredData;
 	skillMatchMeta?: SkillMatchMeta;
+}
+
+function detectEducationLevel(
+	education: ResumeStructuredData['education'],
+): string | null {
+	const text = education.map((e) => e.degree?.toLowerCase() ?? '').join(' ');
+	if (/phd|doctorate|doctor of/.test(text)) return 'PhD';
+	if (/master|msc|mba|m\.s\.|m\.eng/.test(text)) return "Master's";
+	if (/bachelor|bsc|b\.s\.|b\.eng|b\.tech/.test(text)) return "Bachelor's";
+	if (/diploma|certificate|cert\./.test(text)) return 'Diploma / Certificate';
+	return null;
+}
+
+function detectCareerProgression(
+	experience: ResumeStructuredData['experience'],
+): string | null {
+	const roles = experience.map((e) => e.role?.toLowerCase() ?? '');
+	const hasSenior = roles.some((r) =>
+		/senior|lead|principal|staff|head|director|vp|architect/.test(r),
+	);
+	const hasJunior = roles.some((r) =>
+		/junior|graduate|intern|entry|associate/.test(r),
+	);
+	if (hasSenior && hasJunior)
+		return 'Growth arc detected: junior to senior roles';
+	if (hasSenior) return 'Senior-level roles in your history';
+	return null;
+}
+
+function getCompletionTips(data: ResumeStructuredData): string[] {
+	const tips: string[] = [];
+	if (!data.links?.linkedin)
+		tips.push('Add your LinkedIn to boost recruiter visibility');
+	if (!data.links?.github && data.skills.length > 3)
+		tips.push('Add a GitHub link to show your work');
+	if (!data.links?.portfolio)
+		tips.push('A portfolio URL lifts your profile score');
+	if (data.skills.length < 8)
+		tips.push(
+			`Add ${8 - data.skills.length} more skills to unlock roadmap matching`,
+		);
+	if (
+		data.experience.some((e) => !e.description || e.description.length < 80)
+	) {
+		tips.push('Expand short role descriptions for better AI matching');
+	}
+	if ((data.projects?.length ?? 0) === 0)
+		tips.push('Add a project to demonstrate hands-on work');
+	return tips.slice(0, 3); // show at most 3 tips
+}
+
+const SUGGESTIONS: Record<string, string[]> = {
+	'Full-stack': ['TypeScript', 'Docker', 'PostgreSQL', 'Git', 'REST API'],
+	Frontend: ['TypeScript', 'Git', 'Vite', 'Tailwind CSS'],
+	Backend: ['Docker', 'PostgreSQL', 'Git', 'REST API'],
+	Cloud: ['Terraform', 'Docker', 'Kubernetes', 'GitHub Actions'],
+};
+
+function getSuggestedSkills(
+	profileType: string,
+	existingSkills: string[],
+): string[] {
+	const lowerExisting = existingSkills.map((s) => s.toLowerCase());
+	for (const [key, suggestions] of Object.entries(SUGGESTIONS)) {
+		if (profileType.includes(key)) {
+			return suggestions
+				.filter((s) => !lowerExisting.includes(s.toLowerCase()))
+				.slice(0, 2);
+		}
+	}
+	return [];
 }
 
 export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
@@ -25,6 +106,21 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 	const categories = categorizeSkills(data.skills);
 	const totalSkills = data.skills.length;
 	const maxCategoryCount = Math.max(...categories.map(([, s]) => s.length), 1);
+
+	const yearsExp = estimateYearsOfExperience(data.experience);
+	const educationLevel = detectEducationLevel(data.education);
+	const careerProgression = detectCareerProgression(data.experience);
+	const completionTips = getCompletionTips(data);
+
+	const experienceText = data.experience
+		.map((e) => e.description ?? '')
+		.join(' ')
+		.toLowerCase();
+	const skillsEvidenced = data.skills.filter((s) =>
+		experienceText.includes(s.toLowerCase()),
+	).length;
+
+	const suggestedSkills = getSuggestedSkills(profileType, data.skills);
 
 	const goodRoles = data.experience.filter(
 		(e) =>
@@ -58,11 +154,12 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 	);
 
 	return (
-		<aside className="border-border/40 flex w-full flex-col gap-0 overflow-auto border-l">
-			<div className="flex flex-col gap-7 px-6 py-8">
+		<aside className="border-border/40 relative flex w-full flex-col gap-0 overflow-auto border-l">
+			<div className="from-accent/[0.05] pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
+			<div className="relative flex flex-col gap-7 px-6 py-8">
 				{/* Profile Strength */}
 				<div className="flex flex-col gap-4">
-					<p className="text-muted-foreground/50 text-[10px] font-semibold uppercase tracking-[0.1em]">
+					<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
 						Profile Strength
 					</p>
 					<div className="flex items-end justify-between">
@@ -103,18 +200,58 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 
 				{/* AI Analysis */}
 				<div className="flex flex-col gap-3">
-					<p className="text-muted-foreground/50 text-[10px] font-semibold uppercase tracking-[0.1em]">
+					<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
 						AI Analysis
 					</p>
-					<div className="flex items-start gap-2">
-						<Sparkles className="text-accent mt-0.5 size-3.5 shrink-0" />
+					<div className="flex items-start gap-2.5">
+						<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+							<Sparkles className="size-3" />
+						</div>
 						<p className="text-muted-foreground text-sm leading-relaxed">
 							{profileType}
 						</p>
 					</div>
+					{yearsExp !== null && (
+						<div className="flex items-start gap-2.5">
+							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+								<TrendingUp className="size-3" />
+							</div>
+							<p className="text-muted-foreground text-sm">
+								<span className="text-foreground/80 font-medium">
+									~{yearsExp} {yearsExp === 1 ? 'year' : 'years'}
+								</span>
+								{' of work experience'}
+							</p>
+						</div>
+					)}
+					{careerProgression && (
+						<div className="flex items-start gap-2.5">
+							<div className="mt-0.5 shrink-0 rounded-lg bg-emerald-500/10 p-1 text-emerald-600">
+								<TrendingUp className="size-3" />
+							</div>
+							<p className="text-muted-foreground text-sm">
+								{careerProgression}
+							</p>
+						</div>
+					)}
+					{educationLevel && (
+						<div className="flex items-start gap-2.5">
+							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+								<GraduationCap className="size-3" />
+							</div>
+							<p className="text-muted-foreground text-sm">
+								<span className="text-foreground/80 font-medium">
+									{educationLevel}
+								</span>
+								{' detected'}
+							</p>
+						</div>
+					)}
 					{data.experience.length > 0 && (
-						<div className="flex items-start gap-2">
-							<CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500/70" />
+						<div className="flex items-start gap-2.5">
+							<div className="mt-0.5 shrink-0 rounded-lg bg-emerald-500/10 p-1 text-emerald-600">
+								<CheckCircle2 className="size-3" />
+							</div>
 							<p className="text-muted-foreground text-sm">
 								{goodRoles === data.experience.length
 									? `All ${data.experience.length} roles extracted cleanly`
@@ -123,8 +260,10 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 						</div>
 					)}
 					{skillMatchMeta && skillMatchMeta.total > 0 && (
-						<div className="flex items-start gap-2">
-							<Database className="text-accent/70 mt-0.5 size-3.5 shrink-0" />
+						<div className="flex items-start gap-2.5">
+							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+								<Database className="size-3" />
+							</div>
 							<p className="text-muted-foreground text-sm">
 								<span className="text-foreground/80 font-medium">
 									{skillMatchMeta.matched}
@@ -137,7 +276,54 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							</p>
 						</div>
 					)}
+					{data.experience.length > 0 && data.skills.length > 0 && (
+						<div className="flex items-start gap-2.5">
+							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+								<Layers3 className="size-3" />
+							</div>
+							<p className="text-muted-foreground text-sm">
+								<span className="text-foreground/80 font-medium">
+									{skillsEvidenced} of {data.skills.length}
+								</span>
+								{' skills backed by experience'}
+							</p>
+						</div>
+					)}
+					{suggestedSkills.length > 0 && (
+						<div className="flex items-start gap-2.5">
+							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
+								<Lightbulb className="size-3" />
+							</div>
+							<p className="text-muted-foreground text-sm">
+								{'Consider adding: '}
+								<span className="text-foreground/80 font-medium">
+									{suggestedSkills.join(', ')}
+								</span>
+							</p>
+						</div>
+					)}
 				</div>
+
+				{completionTips.length > 0 && (
+					<>
+						<Separator className="bg-border/40" />
+						<div className="flex flex-col gap-3">
+							<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
+								Suggestions
+							</p>
+							{completionTips.map((tip) => (
+								<div key={tip} className="flex items-start gap-2.5">
+									<div className="mt-0.5 shrink-0 rounded-lg bg-amber-500/10 p-1 text-amber-600">
+										<AlertCircle className="size-3" />
+									</div>
+									<p className="text-muted-foreground text-xs leading-relaxed">
+										{tip}
+									</p>
+								</div>
+							))}
+						</div>
+					</>
+				)}
 
 				{categories.length > 0 && (
 					<>
@@ -146,7 +332,7 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 						{/* Skill Distribution */}
 						<div className="flex flex-col gap-3">
 							<div className="flex items-baseline justify-between">
-								<p className="text-muted-foreground/50 text-[10px] font-semibold uppercase tracking-[0.1em]">
+								<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
 									Skill Distribution
 								</p>
 								<span className="text-muted-foreground/40 text-[10px]">

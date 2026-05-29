@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import {
+	BookOpen,
+	Check,
+	GraduationCap,
+	Pencil,
+	Plus,
+	Trash2,
+	X,
+} from 'lucide-react';
 import type { ResumeStructuredData } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
@@ -11,12 +19,14 @@ function EducationEntry({
 	entry,
 	onUpdate,
 	onRemove,
+	autoEdit,
 }: {
 	entry: Education;
 	onUpdate: (updated: Education) => void;
 	onRemove: () => void;
+	autoEdit?: boolean;
 }) {
-	const [editing, setEditing] = useState(false);
+	const [editing, setEditing] = useState(autoEdit ?? false);
 	const [draft, setDraft] = useState(entry);
 
 	const commit = () => {
@@ -29,9 +39,15 @@ function EducationEntry({
 	};
 
 	if (!editing) {
+		const isDiploma = /diploma|certificate/i.test(entry.degree ?? '');
+		const IconComponent = isDiploma ? BookOpen : GraduationCap;
+
 		return (
-			<div className="group/edu flex items-start justify-between gap-3">
-				<div className="flex-1">
+			<div className="group/edu flex items-start gap-3">
+				<div className="bg-accent/[0.08] text-accent shrink-0 rounded-xl p-2.5">
+					<IconComponent className="size-4" />
+				</div>
+				<div className="min-w-0 flex-1">
 					<p className="text-foreground text-sm font-medium leading-snug">
 						{entry.degree}
 					</p>
@@ -65,7 +81,7 @@ function EducationEntry({
 	}
 
 	return (
-		<div className="border-border/50 bg-muted/40 flex flex-col gap-3 rounded-xl border p-4">
+		<div className="border-border/50 bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 			<div className="grid grid-cols-2 gap-3">
 				<div className="col-span-2 flex flex-col gap-1">
 					<label className="text-muted-foreground text-xs">
@@ -122,15 +138,23 @@ export function ReviewEducationSection({
 	education,
 	onChange,
 }: ReviewEducationSectionProps) {
+	const [newIndex, setNewIndex] = useState<number | null>(null);
+
 	const update = (index: number, updated: Education) => {
 		const next = [...education];
 		next[index] = updated;
 		onChange(next);
+		if (index === newIndex) setNewIndex(null);
 	};
-	const remove = (index: number) =>
+	const remove = (index: number) => {
 		onChange(education.filter((_, i) => i !== index));
-	const add = () =>
-		onChange([...education, { institution: '', degree: '', year: '' }]);
+		if (index === newIndex) setNewIndex(null);
+	};
+	const add = () => {
+		const next = [...education, { institution: '', degree: '', year: '' }];
+		onChange(next);
+		setNewIndex(next.length - 1);
+	};
 
 	if (education.length === 0) {
 		return (
@@ -153,6 +177,7 @@ export function ReviewEducationSection({
 					entry={entry}
 					onUpdate={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
+					autoEdit={i === newIndex}
 				/>
 			))}
 			<button
