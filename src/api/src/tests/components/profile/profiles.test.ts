@@ -26,35 +26,26 @@ vi.mock('../../../lib/upload-utils', () => ({
 	deleteResumeFromBucket: uploadMocks.deleteResumeFromBucket,
 }));
 
-// Separate vi.fn() instances so per-test configuration works even though
-// PDFParse must be a real constructor (arrow functions can't be called with new).
-const pdfMocks = vi.hoisted(() => ({
-	getInfo: vi.fn(),
-	getText: vi.fn(),
-	destroy: vi.fn(),
-}));
+const pdfParserMock = vi.hoisted(() => ({ parse: vi.fn() }));
 
-vi.mock('pdf-parse', () => ({
-	PDFParse: class {
-		getInfo() {
-			return pdfMocks.getInfo();
-		}
-		getText() {
-			return pdfMocks.getText();
-		}
-		destroy() {
-			return pdfMocks.destroy();
-		}
-	},
+vi.mock('../../../lib/pdf-parser', () => ({
+	default: pdfParserMock,
 }));
 
 const llmMocks = vi.hoisted(() => ({
 	extractDetailsFromResume: vi.fn(),
+	inferSkillLevels: vi.fn(),
 }));
 
 vi.mock('../../../lib/lllm', () => ({
 	llmService: {
 		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
+	},
+}));
+
+vi.mock('../../../lib/lllm/claude', () => ({
+	default: class {
+		inferSkillLevels = llmMocks.inferSkillLevels;
 	},
 }));
 
@@ -74,9 +65,10 @@ beforeEach(async () => {
 
 	uploadMocks.uploadResumeToBucket.mockResolvedValue('uploads/test-resume.pdf');
 	uploadMocks.deleteResumeFromBucket.mockResolvedValue(undefined);
-	pdfMocks.getInfo.mockResolvedValue({ total: 1 });
-	pdfMocks.getText.mockResolvedValue({ text: 'Sample resume text' });
-	pdfMocks.destroy.mockResolvedValue(undefined);
+	pdfParserMock.parse.mockResolvedValue({
+		text: 'Sample resume text',
+		links: [],
+	});
 	llmMocks.extractDetailsFromResume.mockResolvedValue({
 		isValid: true,
 		name: 'Test User',
@@ -84,6 +76,7 @@ beforeEach(async () => {
 		experience: [],
 		education: [],
 	});
+	llmMocks.inferSkillLevels.mockResolvedValue(new Map());
 });
 
 const { default: profileRoute } =
@@ -186,7 +179,12 @@ describe('POST /api/profile/upload-resume', () => {
 	});
 
 	it('returns 413 when PDF exceeds page limit', async () => {
-		pdfMocks.getInfo.mockResolvedValue({ total: 6 });
+		pdfParserMock.parse.mockRejectedValue(
+			new (await import('../../../utils/error-utils')).ResumeValidationError(
+				'PAGE_LIMIT',
+				'Too many pages.',
+			),
+		);
 
 		const res = await makeResumeRequest('/upload-resume', validPdf);
 
@@ -195,7 +193,12 @@ describe('POST /api/profile/upload-resume', () => {
 	});
 
 	it('returns 400 when PDF is corrupted', async () => {
-		pdfMocks.getInfo.mockRejectedValue(new Error('parse error'));
+		pdfParserMock.parse.mockRejectedValue(
+			new (await import('../../../utils/error-utils')).ResumeValidationError(
+				'CORRUPTED',
+				'Corrupted PDF.',
+			),
+		);
 
 		const res = await makeResumeRequest('/upload-resume', validPdf);
 
@@ -208,6 +211,20 @@ describe('POST /api/profile/upload-resume', () => {
 		const res = await makeResumeRequest('/upload-resume', validPdf);
 
 		expect(res.status).toBe(500);
+	});
+
+	it('returns 422 when the document is not a valid resume', async () => {
+		llmMocks.extractDetailsFromResume.mockResolvedValue({
+			isValid: false,
+			name: 'Test User',
+			skills: [],
+			experience: [],
+			education: [],
+		});
+
+		const res = await makeResumeRequest('/upload-resume', validPdf);
+
+		expect(res.status).toBe(422);
 	});
 
 	it('returns 200 with duplicate message when the same resume is uploaded again', async () => {
@@ -301,6 +318,50 @@ describe('PATCH /api/profile/resume', () => {
 		const [cv] = await db.select().from(cvProfileSchema);
 		expect(cv.is_verified).toBe(true);
 		expect((cv.structured_data as { name: string }).name).toBe('New Name');
+	});
+
+	it('handles experience entries without duration', async () => {
+		await db.insert(cvProfileSchema).values({
+			profile_id: profileId,
+			original_filename: 'cv.pdf',
+			structured_data: { name: 'Test' },
+			is_active: true,
+		});
+
+		const res = await makeVerifyRequest({
+			structuredData: {
+				name: 'Test',
+				skills: ['TypeScript'],
+				experience: [
+					{ role: 'Engineer', company: 'Acme', description: 'Built things' },
+				],
+				education: [],
+			},
+		});
+
+		expect(res.status).toBe(200);
+	});
+
+	it('returns 500 when an unexpected error occurs during verification', async () => {
+		await db.insert(cvProfileSchema).values({
+			profile_id: profileId,
+			original_filename: 'cv.pdf',
+			structured_data: { name: 'Test' },
+			is_active: true,
+		});
+
+		llmMocks.inferSkillLevels.mockRejectedValue(new Error('LLM crash'));
+
+		const res = await makeVerifyRequest({
+			structuredData: {
+				name: 'Test',
+				skills: ['TypeScript'],
+				experience: [],
+				education: [],
+			},
+		});
+
+		expect(res.status).toBe(500);
 	});
 
 	it('only verifies the active CV, not inactive ones', async () => {

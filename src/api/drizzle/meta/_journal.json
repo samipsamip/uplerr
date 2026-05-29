@@ -15,6 +15,13 @@
 			"when": 1779973974113,
 			"tag": "0001_hot_baron_strucker",
 			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1780048378587,
+			"tag": "0002_furry_ink",
+			"breakpoints": true
 		}
 	]
 }

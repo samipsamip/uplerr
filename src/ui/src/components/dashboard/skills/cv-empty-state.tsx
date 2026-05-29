@@ -43,7 +43,10 @@ export function CvEmptyState() {
 				toast.success(res?.message ?? 'CV uploaded successfully');
 				setSelectedFile(null);
 				navigate('/skills/review', {
-					state: { structuredData: res.structuredData },
+					state: {
+						structuredData: res.structuredData,
+						skillMatchMeta: res.skillMatchMeta,
+					},
 				});
 			})
 			.catch((error: Error) => {

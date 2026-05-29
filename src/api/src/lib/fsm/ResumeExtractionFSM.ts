@@ -1,41 +1,26 @@
 /**
  * Resume Extraction FSM
  *
- * Drives a resume file through validation, duplicate detection, LLM extraction,
- * and cloud storage. Handles both first-time uploads and replacements.
- * Created per-request via createResumeExtractionFSM({ file, userId, profileId }).
+ * Processes uploaded resumes through validation, duplicate detection,
+ * LLM-based parsing, cloud upload, and CV persistence. PDFs are validated,
+ * hashed, and parsed before checking for existing active CVs with the same hash.
  *
- * Flow:
- *  1. IDLE → RECEIVED: file received, processing begins.
- *  2. RECEIVED → PARSE_RESUME: computes SHA-256 hash, validates the PDF
- *     (max 5 pages, not corrupted), and extracts raw text.
- *     - ResumeValidationError → RESUME_VALIDATION_ERROR (terminal)
- *     - ResumeExtractionError → RESUME_EXTRACTION_ERROR (terminal)
- *     - Unexpected error    → ERROR (terminal)
- *  3. RESUME_PARSE_SUCCESS → DUPLICATE_CHECK: queries DB for an active CV
- *     with the same hash. If found → RESUME_DUPLICATE (terminal). Otherwise
- *     stores any existing active CV info for replacement in UPLOAD_TO_CLOUD.
- *  4. DUPLICATE_CHECK → LLM_EXTRACTION: raw text sent to the LLM.
- *     The LLM response must include { isValid: true } for processing to continue.
- *     - isValid: false → RESUME_PARSE_FAILED (terminal, document is not a resume)
- *  5. LLM_EXTRACTION → UPLOAD_TO_CLOUD: file uploaded to R2. If an existing
- *     active CV was found, it is deactivated and its file deleted from storage.
- *     A new cv_profiles row is written with structured_data and is_verified: false.
- *  6. DONE: terminal. The user reviews the extracted data.
- *     PATCH /profile/resume persists edits and sets is_verified: true.
+ * Valid resumes are enriched with extracted links, uploaded to R2, and stored
+ * as structured cv_profiles data while replacing any previously active CV.
+ * The FSM also performs lightweight skill prematching and exposes match metadata
+ * in the final API response. Validation, extraction, duplicate, and non-resume
+ * failures terminate in dedicated error states.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import {
 	type ResumeStructuredData,
 	resumeStructuredDataSchema,
 } from '@uppler/types';
 
-import {
-	extractTextFromPDF,
-	validatePdf,
-} from '../../components/profiles/profiles.service';
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
+import { skillAliasSchema } from '../../schemas/skill_aliases.schema';
+import { skillsSchema } from '../../schemas/skills.schema';
 import db from '../../utils/db';
 import {
 	ResumeDuplicateError,
@@ -44,6 +29,7 @@ import {
 } from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
 import { llmService } from '../lllm';
+import pdfParser from '../pdf-parser';
 import { deleteResumeFromBucket, uploadResumeToBucket } from '../upload-utils';
 
 export const ResumeTransitionState = {
@@ -58,6 +44,7 @@ export const ResumeTransitionState = {
 	RESUME_PARSE_FAILED: 'resume_parse_failed',
 	LLM_EXTRACTION: 'llm_extraction',
 	UPLOAD_TO_CLOUD: 'upload_to_cloud',
+	SKILL_PREMATCH: 'skill_prematch',
 	DONE: 'done',
 	ERROR: 'error',
 } as const;
@@ -80,15 +67,40 @@ type MachineDefinition = { initialState: ResumeState } & Partial<
 	Record<ResumeState, StateDefinition>
 >;
 
+export type SkillMatchMeta = { matched: number; total: number };
+
 type ResumeExtractionContext = {
 	buffer: Uint8Array | null;
 	hash: string | null;
 	rawText: string | null;
+	pdfLinks: string[];
 	llmResult: Awaited<
 		ReturnType<typeof llmService.extractDetailsFromResume>
 	> | null;
 	existingCv: { id: string; resume_key: string | null } | null;
+	skillMatchMeta: SkillMatchMeta;
 };
+
+function mergePdfLinks(
+	llmLinks: ResumeStructuredData['links'],
+	pdfLinks: string[],
+): ResumeStructuredData['links'] {
+	const merged: ResumeStructuredData['links'] = { ...llmLinks };
+	for (const link of pdfLinks) {
+		if (!merged?.github && /github\.com\//i.test(link)) {
+			merged!.github = link;
+		} else if (!merged?.linkedin && /linkedin\.com\//i.test(link)) {
+			merged!.linkedin = link;
+		} else if (
+			!merged?.portfolio &&
+			/^https?:\/\//i.test(link) &&
+			!/github\.com|linkedin\.com/i.test(link)
+		) {
+			merged!.portfolio = link;
+		}
+	}
+	return merged;
+}
 
 const createMachine = (stateMachineDefinition: MachineDefinition) => {
 	const machine = {
@@ -132,8 +144,10 @@ export const createResumeExtractionFSM = ({
 		buffer: null,
 		hash: null,
 		rawText: null,
+		pdfLinks: [],
 		llmResult: null,
 		existingCv: null,
+		skillMatchMeta: { matched: 0, total: 0 },
 	};
 
 	const machine = createMachine({
@@ -170,8 +184,9 @@ export const createResumeExtractionFSM = ({
 						.createHash('sha256')
 						.update(ctx.buffer)
 						.digest('hex');
-					await validatePdf(ctx.buffer);
-					ctx.rawText = await extractTextFromPDF(file);
+					const { text, links } = await pdfParser.parse(ctx.buffer);
+					ctx.rawText = text;
+					ctx.pdfLinks = links;
 				},
 			},
 		},
@@ -240,14 +255,17 @@ export const createResumeExtractionFSM = ({
 		},
 		[ResumeTransitionState.UPLOAD_TO_CLOUD]: {
 			transition: {
-				targetState: ResumeTransitionState.DONE,
+				targetState: ResumeTransitionState.SKILL_PREMATCH,
 				action: async () => {
 					if (!ctx.llmResult)
 						throw new Error('llmResult is not available for upload.');
 					const resumeKey = await uploadResumeToBucket(file, userId);
-					const extractedResumeDetails = resumeStructuredDataSchema.parse(
-						ctx.llmResult,
-					);
+
+					const mergedLinks = mergePdfLinks(ctx.llmResult.links, ctx.pdfLinks);
+					const extractedResumeDetails = resumeStructuredDataSchema.parse({
+						...ctx.llmResult,
+						links: mergedLinks,
+					});
 
 					await db.transaction(async (tx) => {
 						if (ctx.existingCv) {
@@ -274,6 +292,55 @@ export const createResumeExtractionFSM = ({
 				},
 			},
 		},
+		[ResumeTransitionState.SKILL_PREMATCH]: {
+			transition: {
+				targetState: ResumeTransitionState.DONE,
+				action: async () => {
+					const skills = ctx.llmResult?.skills ?? [];
+					if (skills.length === 0) return;
+
+					try {
+						const lowerNames = skills.map((s) => s.toLowerCase().trim());
+
+						const [aliasMatches, directMatches] = await Promise.all([
+							db
+								.selectDistinct({ skill_id: skillAliasSchema.skill_id })
+								.from(skillAliasSchema)
+								.where(
+									inArray(sql`lower(${skillAliasSchema.alias})`, lowerNames),
+								),
+							db
+								.selectDistinct({ id: skillsSchema.id })
+								.from(skillsSchema)
+								.where(
+									and(
+										notDeleted(skillsSchema),
+										or(
+											inArray(sql`lower(${skillsSchema.slug})`, lowerNames),
+											inArray(
+												sql`lower(${skillsSchema.display_name})`,
+												lowerNames,
+											),
+										),
+									),
+								),
+						]);
+
+						const matchedIds = new Set([
+							...aliasMatches.map((r) => r.skill_id),
+							...directMatches.map((r) => r.id),
+						]);
+
+						ctx.skillMatchMeta = {
+							matched: matchedIds.size,
+							total: skills.length,
+						};
+					} catch {
+						ctx.skillMatchMeta = { matched: 0, total: skills.length };
+					}
+				},
+			},
+		},
 		[ResumeTransitionState.DONE]: {},
 	});
 
@@ -287,7 +354,13 @@ export const createResumeExtractionFSM = ({
 		},
 		get structuredData(): ResumeStructuredData | null {
 			if (!ctx.llmResult) return null;
-			return resumeStructuredDataSchema.parse(ctx.llmResult);
+			return resumeStructuredDataSchema.parse({
+				...ctx.llmResult,
+				links: mergePdfLinks(ctx.llmResult.links, ctx.pdfLinks),
+			});
+		},
+		get skillMatchMeta(): SkillMatchMeta {
+			return ctx.skillMatchMeta;
 		},
 	};
 };

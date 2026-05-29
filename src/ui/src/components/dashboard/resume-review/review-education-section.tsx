@@ -30,19 +30,23 @@ function EducationEntry({
 
 	if (!editing) {
 		return (
-			<div className="group flex items-start justify-between gap-3">
+			<div className="group/edu flex items-start justify-between gap-3">
 				<div className="flex-1">
-					<p className="text-sm font-medium leading-snug">{entry.degree}</p>
+					<p className="text-foreground text-sm font-medium leading-snug">
+						{entry.degree}
+					</p>
 					<p className="text-muted-foreground mt-0.5 text-xs">
 						{entry.institution}
-						{entry.year && ` · ${entry.year}`}
+						{entry.year && (
+							<span className="text-muted-foreground/60"> · {entry.year}</span>
+						)}
 					</p>
 				</div>
-				<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+				<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover/edu:opacity-100">
 					<button
 						type="button"
 						onClick={() => setEditing(true)}
-						className="text-muted-foreground hover:text-foreground"
+						className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
 						aria-label="Edit"
 					>
 						<Pencil className="size-3.5" />
@@ -50,7 +54,7 @@ function EducationEntry({
 					<button
 						type="button"
 						onClick={onRemove}
-						className="text-muted-foreground hover:text-destructive"
+						className="text-muted-foreground/40 hover:text-destructive transition-colors"
 						aria-label="Remove"
 					>
 						<Trash2 className="size-3.5" />
@@ -61,7 +65,7 @@ function EducationEntry({
 	}
 
 	return (
-		<div className="border-border bg-muted/30 flex flex-col gap-3 rounded-xl border p-4">
+		<div className="border-border/50 bg-muted/40 flex flex-col gap-3 rounded-xl border p-4">
 			<div className="grid grid-cols-2 gap-3">
 				<div className="col-span-2 flex flex-col gap-1">
 					<label className="text-muted-foreground text-xs">
@@ -154,7 +158,7 @@ export function ReviewEducationSection({
 			<button
 				type="button"
 				onClick={add}
-				className="text-muted-foreground hover:text-foreground flex items-center gap-1 self-start text-sm transition-colors"
+				className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 self-start text-sm transition-colors"
 			>
 				<Plus className="size-3.5" />
 				Add qualification

@@ -63,7 +63,10 @@ export function CvCard({ cvFile }: CvCardProps) {
 				setSelectedFile(null);
 				if (res.structuredData) {
 					navigate('/skills/review', {
-						state: { structuredData: res.structuredData },
+						state: {
+							structuredData: res.structuredData,
+							skillMatchMeta: res.skillMatchMeta,
+						},
 					});
 				}
 			})

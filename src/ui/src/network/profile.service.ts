@@ -18,10 +18,16 @@ export type UserProfile = {
 	usage_reset_at: string | null;
 };
 
+export type SkillMatchMeta = { matched: number; total: number };
+
 export const postCreateProfileFromResume = async (resumePDF: FormData) => {
 	return api
 		.post('api/profile/upload-resume', { body: resumePDF, timeout: 120000 })
-		.json<{ message: string; structuredData: ResumeStructuredData }>();
+		.json<{
+			message: string;
+			structuredData: ResumeStructuredData;
+			skillMatchMeta: SkillMatchMeta;
+		}>();
 };
 
 export const getUserProfile = async () => {

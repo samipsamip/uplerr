@@ -5,14 +5,10 @@ import {
 	ResumeValidationError,
 } from '../../../utils/error-utils';
 
-const serviceMocks = vi.hoisted(() => ({
-	validatePdf: vi.fn(),
-	extractTextFromPDF: vi.fn(),
-}));
+const pdfParserMock = vi.hoisted(() => ({ parse: vi.fn() }));
 
-vi.mock('../../../components/profiles/profiles.service', () => ({
-	validatePdf: serviceMocks.validatePdf,
-	extractTextFromPDF: serviceMocks.extractTextFromPDF,
+vi.mock('../../../lib/pdf-parser', () => ({
+	default: pdfParserMock,
 }));
 
 const llmMocks = vi.hoisted(() => ({
@@ -36,6 +32,7 @@ vi.mock('../../../lib/upload-utils', () => ({
 const dbMocks = vi.hoisted(() => ({
 	values: vi.fn(),
 	selectReturn: vi.fn(),
+	selectDistinctReturn: vi.fn(),
 }));
 
 const selectChain = {
@@ -44,10 +41,16 @@ const selectChain = {
 	limit: () => dbMocks.selectReturn(),
 };
 
+const selectDistinctChain = {
+	from: () => selectDistinctChain,
+	where: () => Promise.resolve(dbMocks.selectDistinctReturn()),
+};
+
 vi.mock('../../../utils/db', () => ({
 	default: {
 		insert: vi.fn(() => ({ values: dbMocks.values })),
 		select: vi.fn(() => selectChain),
+		selectDistinct: vi.fn(() => selectDistinctChain),
 		transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
 			const tx = {
 				insert: vi.fn(() => ({ values: dbMocks.values })),
@@ -86,12 +89,60 @@ const validLlmResult = {
 
 beforeEach(() => {
 	vi.clearAllMocks();
-	serviceMocks.validatePdf.mockResolvedValue(undefined);
-	serviceMocks.extractTextFromPDF.mockResolvedValue('Sample resume text');
+	pdfParserMock.parse.mockResolvedValue({
+		text: 'Sample resume text',
+		links: [],
+	});
 	llmMocks.extractDetailsFromResume.mockResolvedValue(validLlmResult);
 	uploadMocks.uploadResumeToBucket.mockResolvedValue('uploads/resume.pdf');
 	dbMocks.values.mockResolvedValue(undefined);
 	dbMocks.selectReturn.mockResolvedValue([]); // no existing CV by default
+	dbMocks.selectDistinctReturn.mockReturnValue([]); // no skill matches by default
+});
+
+describe('ResumeExtractionFSM — PDF link merging', () => {
+	it('fills missing github/linkedin/portfolio from PDF annotation links', async () => {
+		pdfParserMock.parse.mockResolvedValue({
+			text: 'Sample resume text',
+			links: [
+				'https://github.com/testuser',
+				'https://linkedin.com/in/testuser',
+				'https://testuser.dev',
+			],
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.DONE);
+		expect(machine.structuredData?.links?.github).toBe(
+			'https://github.com/testuser',
+		);
+		expect(machine.structuredData?.links?.linkedin).toBe(
+			'https://linkedin.com/in/testuser',
+		);
+		expect(machine.structuredData?.links?.portfolio).toBe(
+			'https://testuser.dev',
+		);
+	});
+
+	it('does not overwrite links already extracted by the LLM', async () => {
+		llmMocks.extractDetailsFromResume.mockResolvedValue({
+			...validLlmResult,
+			links: { github: 'https://github.com/from-llm' },
+		});
+		pdfParserMock.parse.mockResolvedValue({
+			text: 'Sample resume text',
+			links: ['https://github.com/from-pdf'],
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.structuredData?.links?.github).toBe(
+			'https://github.com/from-llm',
+		);
+	});
 });
 
 describe('ResumeExtractionFSM — happy path', () => {
@@ -141,7 +192,7 @@ describe('ResumeExtractionFSM — happy path', () => {
 
 describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 	it('reaches RESUME_VALIDATION_ERROR on page limit exceeded', async () => {
-		serviceMocks.validatePdf.mockRejectedValue(
+		pdfParserMock.parse.mockRejectedValue(
 			new ResumeValidationError('PAGE_LIMIT', 'Too many pages.'),
 		);
 
@@ -154,7 +205,7 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 	});
 
 	it('reaches RESUME_VALIDATION_ERROR on corrupted PDF', async () => {
-		serviceMocks.validatePdf.mockRejectedValue(
+		pdfParserMock.parse.mockRejectedValue(
 			new ResumeValidationError('CORRUPTED', 'Corrupted file.'),
 		);
 
@@ -165,8 +216,8 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 		expect((machine.error as ResumeValidationError).code).toBe('CORRUPTED');
 	});
 
-	it('reaches RESUME_EXTRACTION_ERROR when text extraction fails', async () => {
-		serviceMocks.extractTextFromPDF.mockRejectedValue(
+	it('reaches RESUME_EXTRACTION_ERROR when PDF extraction fails', async () => {
+		pdfParserMock.parse.mockRejectedValue(
 			new ResumeExtractionError('Failed to extract text.'),
 		);
 
@@ -178,7 +229,7 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 	});
 
 	it('reaches ERROR on an unexpected parse failure', async () => {
-		serviceMocks.validatePdf.mockRejectedValue(new Error('Unexpected error'));
+		pdfParserMock.parse.mockRejectedValue(new Error('Unexpected error'));
 
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
@@ -187,7 +238,7 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 	});
 
 	it('does not call the LLM when parsing fails', async () => {
-		serviceMocks.validatePdf.mockRejectedValue(
+		pdfParserMock.parse.mockRejectedValue(
 			new ResumeValidationError('CORRUPTED', 'Corrupted.'),
 		);
 
@@ -233,6 +284,41 @@ describe('ResumeExtractionFSM — LLM_EXTRACTION errors', () => {
 		await machine.run();
 
 		expect(machine.value).toBe(ResumeTransitionState.RESUME_PARSE_FAILED);
+	});
+});
+
+describe('ResumeExtractionFSM — SKILL_PREMATCH', () => {
+	it('exposes matched skill count when canonical matches are found', async () => {
+		llmMocks.extractDetailsFromResume.mockResolvedValue({
+			...validLlmResult,
+			skills: ['TypeScript', 'React'],
+		});
+		// first selectDistinct call (aliases) returns 1 match, second (direct) returns 1 match
+		dbMocks.selectDistinctReturn
+			.mockReturnValueOnce([{ skill_id: 'skill-1' }])
+			.mockReturnValueOnce([{ id: 'skill-2' }]);
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.DONE);
+		expect(machine.skillMatchMeta).toEqual({ matched: 2, total: 2 });
+	});
+
+	it('falls back to matched:0 when the DB query fails', async () => {
+		llmMocks.extractDetailsFromResume.mockResolvedValue({
+			...validLlmResult,
+			skills: ['TypeScript'],
+		});
+		dbMocks.selectDistinctReturn.mockImplementation(() => {
+			throw new Error('DB error');
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.DONE);
+		expect(machine.skillMatchMeta.matched).toBe(0);
 	});
 });
 

@@ -1,39 +1,16 @@
-import {
-	pgEnum,
-	pgTable,
-	text,
-	timestamp,
-	uuid,
-	varchar,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
 
 import { profileSchema } from './profiles.schema';
+import { skillCategoryEnum, skillLevelEnum } from './skill-enums.schema';
 
-export const skillCategoryEnum = pgEnum('skill_category', [
-	'Frontend',
-	'Backend',
-	'Mobile',
-	'DevOps',
-	'Cloud',
-	'Data',
-	'Design',
-	'Testing',
-	'Security',
-	'Other',
-]);
-
-export const skillLevelEnum = pgEnum('skill_level', [
-	'beginner',
-	'intermediate',
-	'advanced',
-	'expert',
-]);
+export { skillCategoryEnum, skillLevelEnum };
 
 export const userSkillSchema = pgTable('user_skills', {
 	id: uuid('id').primaryKey().defaultRandom(),
 	profile_id: uuid('profile_id')
 		.references(() => profileSchema.id)
 		.notNull(),
+	canonical_skill_id: uuid('canonical_skill_id'),
 	name: varchar('name', { length: 100 }).notNull(),
 	category: skillCategoryEnum('category').notNull(),
 	level: skillLevelEnum('level').notNull(),

@@ -28,6 +28,16 @@ export const resumeStructuredDataSchema = z.object({
 			year: z.string().optional(),
 		}),
 	),
+	projects: z
+		.array(
+			z.object({
+				name: z.string(),
+				description: z.string().optional(),
+				url: z.string().optional(),
+				technologies: z.array(z.string()).optional(),
+			}),
+		)
+		.optional(),
 });
 
 export type ResumeStructuredData = z.infer<typeof resumeStructuredDataSchema>;

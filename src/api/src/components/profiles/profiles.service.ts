@@ -1,58 +1,19 @@
-import { and, eq } from 'drizzle-orm';
-import { PDFParse, type TextResult } from 'pdf-parse';
+import { and, eq, inArray, or, sql } from 'drizzle-orm';
 
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import {
 	profileSchema,
 	userProfilePublicFields,
 } from '../../schemas/profiles.schema';
+import { skillAliasSchema } from '../../schemas/skill_aliases.schema';
+import type {
+	SkillCategory,
+	SkillLevel,
+} from '../../schemas/skill-enums.schema';
+import { skillsSchema } from '../../schemas/skills.schema';
+import { userSkillSchema } from '../../schemas/user_skills.schema';
 import db from '../../utils/db';
-import {
-	ResumeExtractionError,
-	ResumeValidationError,
-} from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
-
-export const validatePdf = async (buffer: Uint8Array): Promise<void> => {
-	let parser: InstanceType<typeof PDFParse> | null = null;
-	try {
-		parser = new PDFParse(buffer);
-		const info = await parser.getInfo();
-		if (info.total > 5) {
-			throw new ResumeValidationError(
-				'PAGE_LIMIT',
-				'The provided PDF has more than 5 pages, please upload a PDF with 5 pages or less.',
-			);
-		}
-	} catch (error) {
-		if (error instanceof ResumeValidationError) throw error;
-		throw new ResumeValidationError(
-			'CORRUPTED',
-			'The provided PDF appears to be corrupted. Please try again with a different file.',
-		);
-	} finally {
-		await parser?.destroy();
-	}
-};
-
-export const extractTextFromPDF = async (
-	file: File,
-): Promise<TextResult['text']> => {
-	const buffer = new Uint8Array(await file.arrayBuffer());
-	let parser: InstanceType<typeof PDFParse> | null = null;
-	try {
-		parser = new PDFParse(buffer);
-		const rawText = await parser.getText();
-		if (!rawText?.text || rawText?.text === '') {
-			return '';
-		}
-		return rawText.text;
-	} catch {
-		throw new ResumeExtractionError('Error extracting text from resume!');
-	} finally {
-		await parser?.destroy();
-	}
-};
 
 export const getUserProfileById = async (userId: string) => {
 	return db
@@ -74,4 +35,125 @@ export const getActiveCvProfile = async (profileId: string) => {
 			),
 		)
 		.limit(1);
+};
+
+export type NormalizedSkill = {
+	rawName: string;
+	canonicalName: string;
+	canonicalId: string | null;
+	category: SkillCategory;
+};
+
+export const normalizeExtractedSkills = async (
+	rawSkills: string[],
+): Promise<NormalizedSkill[]> => {
+	if (rawSkills.length === 0) return [];
+
+	const lowerToRaw = new Map(rawSkills.map((s) => [s.toLowerCase().trim(), s]));
+	const lowerNames = [...lowerToRaw.keys()];
+
+	const [aliasRows, directRows] = await Promise.all([
+		db
+			.select({
+				alias: skillAliasSchema.alias,
+				skill_id: skillAliasSchema.skill_id,
+				display_name: skillsSchema.display_name,
+				category: skillsSchema.category,
+			})
+			.from(skillAliasSchema)
+			.innerJoin(skillsSchema, eq(skillAliasSchema.skill_id, skillsSchema.id))
+			.where(
+				and(
+					inArray(sql`lower(${skillAliasSchema.alias})`, lowerNames),
+					notDeleted(skillsSchema),
+				),
+			),
+		db
+			.select({
+				id: skillsSchema.id,
+				display_name: skillsSchema.display_name,
+				category: skillsSchema.category,
+				slug: skillsSchema.slug,
+			})
+			.from(skillsSchema)
+			.where(
+				and(
+					notDeleted(skillsSchema),
+					or(
+						inArray(sql`lower(${skillsSchema.slug})`, lowerNames),
+						inArray(sql`lower(${skillsSchema.display_name})`, lowerNames),
+					),
+				),
+			),
+	]);
+
+	const aliasMap = new Map(aliasRows.map((r) => [r.alias.toLowerCase(), r]));
+	const directBySlug = new Map(
+		directRows.map((r) => [r.slug.toLowerCase(), r]),
+	);
+	const directByName = new Map(
+		directRows.map((r) => [r.display_name.toLowerCase(), r]),
+	);
+
+	return rawSkills.map((raw) => {
+		const lower = raw.toLowerCase().trim();
+		const alias = aliasMap.get(lower);
+		if (alias) {
+			return {
+				rawName: raw,
+				canonicalName: alias.display_name,
+				canonicalId: alias.skill_id,
+				category: alias.category as SkillCategory,
+			};
+		}
+		const direct = directBySlug.get(lower) ?? directByName.get(lower);
+		if (direct) {
+			return {
+				rawName: raw,
+				canonicalName: direct.display_name,
+				canonicalId: direct.id,
+				category: direct.category as SkillCategory,
+			};
+		}
+		return {
+			rawName: raw,
+			canonicalName: raw,
+			canonicalId: null,
+			category: 'Other' as SkillCategory,
+		};
+	});
+};
+
+export const upsertCvExtractionSkills = async (
+	profileId: string,
+	skills: Array<{
+		canonicalName: string;
+		canonicalId: string | null;
+		category: SkillCategory;
+		level: SkillLevel;
+	}>,
+): Promise<void> => {
+	await db
+		.update(userSkillSchema)
+		.set({ deleted_at: new Date() })
+		.where(
+			and(
+				eq(userSkillSchema.profile_id, profileId),
+				eq(userSkillSchema.source, 'cv_extraction'),
+				notDeleted(userSkillSchema),
+			),
+		);
+
+	if (skills.length === 0) return;
+
+	await db.insert(userSkillSchema).values(
+		skills.map((s) => ({
+			profile_id: profileId,
+			...(s.canonicalId ? { canonical_skill_id: s.canonicalId } : {}),
+			name: s.canonicalName,
+			category: s.category,
+			level: s.level,
+			source: 'cv_extraction',
+		})),
+	);
 };

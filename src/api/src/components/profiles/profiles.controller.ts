@@ -6,10 +6,18 @@ import {
 	createResumeExtractionFSM,
 	ResumeTransitionState,
 } from '../../lib/fsm/ResumeExtractionFSM';
+import Claude from '../../lib/lllm/claude';
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import db from '../../utils/db';
 import { ResumeValidationError } from '../../utils/error-utils';
-import { getActiveCvProfile, getUserProfileById } from './profiles.service';
+import {
+	getActiveCvProfile,
+	getUserProfileById,
+	normalizeExtractedSkills,
+	upsertCvExtractionSkills,
+} from './profiles.service';
+
+const claude = new Claude();
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -84,6 +92,7 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 				{
 					message: 'CV uploaded successfully.',
 					structuredData: machine.structuredData,
+					skillMatchMeta: machine.skillMatchMeta,
 				},
 				201,
 			);
@@ -155,6 +164,10 @@ export const verifyUserResume = factory.createHandlers(async (c) => {
 	}
 
 	try {
+		const structuredData =
+			body.structuredData ??
+			(active.structured_data as ResumeStructuredData | null);
+
 		await db
 			.update(cvProfileSchema)
 			.set({
@@ -165,6 +178,31 @@ export const verifyUserResume = factory.createHandlers(async (c) => {
 				updated_at: new Date(),
 			})
 			.where(eq(cvProfileSchema.id, active.id));
+
+		if (structuredData?.skills?.length) {
+			const rawSkills = structuredData.skills;
+			const workHistoryText = structuredData.experience
+				.map(
+					(e) =>
+						`${e.role} at ${e.company}${e.duration ? ` (${e.duration})` : ''}: ${e.description ?? ''}`,
+				)
+				.join('\n\n');
+
+			const [normalized, levelMap] = await Promise.all([
+				normalizeExtractedSkills(rawSkills),
+				claude.inferSkillLevels(rawSkills, workHistoryText),
+			]);
+
+			const skillsToUpsert = normalized.map((s) => ({
+				canonicalName: s.canonicalName,
+				canonicalId: s.canonicalId,
+				category: s.category,
+				level:
+					levelMap.get(s.rawName.toLowerCase()) ?? ('intermediate' as const),
+			}));
+
+			await upsertCvExtractionSkills(profileId, skillsToUpsert);
+		}
 
 		return c.json({ message: 'CV verified successfully.' }, 200);
 	} catch {
