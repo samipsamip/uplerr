@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Cable, Check, GitFork, Globe, Pencil, X } from 'lucide-react';
+import { Check, Globe, Mail, MapPin, Pencil, Phone, X } from 'lucide-react';
 import type { ResumeStructuredData } from '@uppler/types';
 
+import { BrandIcon } from '@/components/dashboard/brand-icon';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -119,36 +120,43 @@ export function ReviewProfileSection({
 					className="text-xl font-semibold"
 				/>
 
-				<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-					<EditableField
-						label="Email"
-						value={data.email}
-						onSave={(v) => set('email', v || undefined)}
-						className="text-muted-foreground text-sm"
-					/>
-					{(data.email || data.phone) && (
-						<span className="text-border select-none text-sm">·</span>
-					)}
-					<EditableField
-						label="Phone"
-						value={data.phone}
-						onSave={(v) => set('phone', v || undefined)}
-						className="text-muted-foreground text-sm"
-					/>
-					{(data.phone || data.location) && (
-						<span className="text-border select-none text-sm">·</span>
-					)}
-					<EditableField
-						label="Location"
-						value={data.location}
-						onSave={(v) => set('location', v || undefined)}
-						className="text-muted-foreground text-sm"
-					/>
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+					<div className="flex items-center gap-1.5">
+						<Mail className="text-muted-foreground/40 size-3 shrink-0" />
+						<EditableField
+							label="Email"
+							value={data.email}
+							onSave={(v) => set('email', v || undefined)}
+							className="text-muted-foreground text-sm"
+						/>
+					</div>
+					<div className="flex items-center gap-1.5">
+						<Phone className="text-muted-foreground/40 size-3 shrink-0" />
+						<EditableField
+							label="Phone"
+							value={data.phone}
+							onSave={(v) => set('phone', v || undefined)}
+							className="text-muted-foreground text-sm"
+						/>
+					</div>
+					<div className="flex items-center gap-1.5">
+						<MapPin className="text-muted-foreground/40 size-3 shrink-0" />
+						<EditableField
+							label="Location"
+							value={data.location}
+							onSave={(v) => set('location', v || undefined)}
+							className="text-muted-foreground text-sm"
+						/>
+					</div>
 				</div>
 
 				<div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5">
 					<div className="flex items-center gap-1.5">
-						<Cable className="text-muted-foreground/50 size-3.5 shrink-0" />
+						<BrandIcon
+							name="LinkedIn"
+							size={14}
+							className="shrink-0 opacity-60"
+						/>
 						<EditableField
 							label="LinkedIn URL"
 							value={data.links?.linkedin}
@@ -158,7 +166,11 @@ export function ReviewProfileSection({
 						/>
 					</div>
 					<div className="flex items-center gap-1.5">
-						<GitFork className="text-muted-foreground/50 size-3.5 shrink-0" />
+						<BrandIcon
+							name="GitHub"
+							size={14}
+							className="shrink-0 opacity-60"
+						/>
 						<EditableField
 							label="GitHub URL"
 							value={data.links?.github}
