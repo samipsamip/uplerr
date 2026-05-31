@@ -3,6 +3,7 @@ import { Check, Plus, X } from 'lucide-react';
 import type { SkillExtractionType } from '@uppler/types';
 
 import { BrandIcon } from '@/components/dashboard/brand-icon';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getSkillIcon } from '@/lib/skill-icon';
 
@@ -39,14 +40,16 @@ function SkillChip({
 				<BrandIcon name={icon} size={14} className="shrink-0 opacity-70" />
 			)}
 			{skill.name}
-			<button
+			<Button
 				type="button"
+				variant="ghost"
+				size="icon"
 				onClick={onRemove}
-				className="text-muted-foreground/40 hover:text-destructive ml-0.5 transition-colors"
+				className="text-muted-foreground/40 hover:text-destructive ml-0.5 size-4"
 				aria-label={`Remove ${skill.name}`}
 			>
 				<X className="size-3" />
-			</button>
+			</Button>
 		</span>
 	);
 }
@@ -106,35 +109,41 @@ function SkillGroupSection({
 							placeholder="Skill name"
 							autoFocus
 						/>
-						<button
+						<Button
 							type="button"
+							variant="ghost"
+							size="icon"
 							onClick={commit}
-							className="text-accent hover:text-accent/80"
+							className="text-accent hover:text-accent/80 size-6"
 							aria-label="Add"
 						>
 							<Check className="size-3.5" />
-						</button>
-						<button
+						</Button>
+						<Button
 							type="button"
+							variant="ghost"
+							size="icon"
 							onClick={() => {
 								setDraft('');
 								setAdding(false);
 							}}
-							className="text-muted-foreground hover:text-foreground"
+							className="text-muted-foreground hover:text-foreground size-6"
 							aria-label="Cancel"
 						>
 							<X className="size-3.5" />
-						</button>
+						</Button>
 					</div>
 				) : (
-					<button
+					<Button
 						type="button"
+						variant="outline"
+						size="sm"
 						onClick={() => setAdding(true)}
-						className="text-muted-foreground/40 hover:text-muted-foreground flex items-center gap-0.5 rounded-lg border border-dashed px-2 py-1 text-xs transition-colors"
+						className="text-muted-foreground/40 hover:text-muted-foreground gap-0.5 rounded-lg border-dashed px-2 text-xs"
 					>
 						<Plus className="size-3" />
 						Add
-					</button>
+					</Button>
 				)}
 			</div>
 		</div>

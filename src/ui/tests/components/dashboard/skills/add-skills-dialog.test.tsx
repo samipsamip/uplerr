@@ -30,15 +30,19 @@ describe('AddSkillsDialog', () => {
 		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 	});
 
-	it('renders skill name, category, and level fields', () => {
+	it('renders skill name field and category/level selects', () => {
 		renderDialog();
 
 		expect(screen.getByLabelText(/skill name/i)).toBeInTheDocument();
-		expect(screen.getByLabelText(/category/i)).toBeInTheDocument();
-		expect(screen.getByLabelText(/experience level/i)).toBeInTheDocument();
+		expect(
+			screen.getByRole('combobox', { name: /category/i }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByRole('combobox', { name: /experience level/i }),
+		).toBeInTheDocument();
 	});
 
-	it('shows validation errors when submitting an empty form', async () => {
+	it('shows a validation error when submitting with an empty name', async () => {
 		const user = userEvent.setup();
 		renderDialog();
 
@@ -54,11 +58,15 @@ describe('AddSkillsDialog', () => {
 		const { onOpenDialog } = renderDialog();
 
 		await user.type(screen.getByLabelText(/skill name/i), 'React');
-		await user.selectOptions(screen.getByLabelText(/category/i), 'Frontend');
-		await user.selectOptions(
-			screen.getByLabelText(/experience level/i),
-			'advanced',
+
+		await user.click(screen.getByRole('combobox', { name: /category/i }));
+		await user.click(await screen.findByRole('option', { name: 'Frontend' }));
+
+		await user.click(
+			screen.getByRole('combobox', { name: /experience level/i }),
 		);
+		await user.click(await screen.findByRole('option', { name: 'Advanced' }));
+
 		await user.click(screen.getByRole('button', { name: /add skill/i }));
 
 		await waitFor(() => {

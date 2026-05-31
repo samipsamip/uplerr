@@ -1,59 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
 import { FileText, Loader2, Upload } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { MAX_FILE_SIZE_CV } from '@/lib/constants';
-import { useCreateProfileFromResume } from '@/query/profile.query';
 
-function formatFileSize(bytes: number): string {
-	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { formatFileSize, useCvUpload } from './use-cv-upload';
 
 export function CvEmptyState() {
-	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [isUploading, setIsUploading] = useState(false);
-	const { mutateAsync } = useCreateProfileFromResume();
-	const navigate = useNavigate();
-
-	const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const resume = e.target.files?.[0] ?? null;
-		e.target.value = '';
-		if (!resume) return;
-		if (resume.size > MAX_FILE_SIZE_CV) {
-			toast.error('File exceeds maximum size of 2MB');
-			return;
-		}
-		if (resume.type !== 'application/pdf') {
-			toast.error('Only PDFs are allowed for upload');
-			return;
-		}
-		setSelectedFile(resume);
-	};
-
-	const onConfirm = () => {
-		if (!selectedFile) return;
-		setIsUploading(true);
-		const formData = new FormData();
-		formData.append('resume', selectedFile);
-		mutateAsync(formData)
-			.then((res) => {
-				toast.success(res?.message ?? 'CV uploaded successfully');
-				setSelectedFile(null);
-				navigate('/skills/review', {
-					state: {
-						structuredData: res.structuredData,
-						skillMatchMeta: res.skillMatchMeta,
-					},
-				});
-			})
-			.catch((error: Error) => {
-				toast.error(error.message ?? 'Upload failed — please try again');
-			})
-			.finally(() => setIsUploading(false));
-	};
+	const { selectedFile, isUploading, onFileChange, onConfirm } = useCvUpload();
 
 	if (selectedFile) {
 		return (
@@ -81,7 +33,7 @@ export function CvEmptyState() {
 					<Button
 						size="sm"
 						className="gap-1.5"
-						onClick={onConfirm}
+						onClick={() => onConfirm()}
 						disabled={isUploading}
 						type="button"
 					>

@@ -62,4 +62,8 @@ export const handlers = [
 			{ status: 201 },
 		),
 	),
+
+	http.patch(`${BASE}/api/profile/resume`, () =>
+		HttpResponse.json({ message: 'Profile verified.' }),
+	),
 ];

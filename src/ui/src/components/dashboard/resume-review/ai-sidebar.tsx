@@ -191,7 +191,7 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 	);
 
 	return (
-		<aside className="relative w-full overflow-auto">
+		<aside className="relative w-full overflow-auto md:h-full">
 			<div className="from-accent/[0.05] pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
 
 			{/*

@@ -79,6 +79,9 @@ export default function AppSidebar({
 								const isActive = item.href
 									? location.pathname === item.href
 									: false;
+								const iconClass = isActive
+									? 'text-accent'
+									: 'text-muted-foreground';
 								return (
 									<SidebarMenuItem key={item.label}>
 										<SidebarMenuButton
@@ -93,20 +96,12 @@ export default function AppSidebar({
 										>
 											{item.href ? (
 												<NavLink to={item.href}>
-													<item.icon
-														className={
-															isActive ? 'text-accent' : 'text-muted-foreground'
-														}
-													/>
+													<item.icon className={iconClass} />
 													<span>{item.label}</span>
 												</NavLink>
 											) : (
 												<>
-													<item.icon
-														className={
-															isActive ? 'text-accent' : 'text-muted-foreground'
-														}
-													/>
+													<item.icon className={iconClass} />
 													<span>{item.label}</span>
 												</>
 											)}

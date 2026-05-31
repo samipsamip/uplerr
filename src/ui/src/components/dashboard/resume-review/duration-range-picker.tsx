@@ -3,7 +3,10 @@ import type { DateRange } from 'react-day-picker';
 import { format, isValid, parse } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
 	Popover,
 	PopoverContent,
@@ -41,7 +44,7 @@ function parseDurationString(value: string | undefined): {
 } {
 	if (!value) return { from: undefined, to: undefined, isPresent: false };
 
-	const parts = value.split(/\s*[-–—to]+\s*/i);
+	const parts = value.split(/\s*(?:[-–—]|to)\s*/i);
 	if (parts.length < 2)
 		return {
 			from: parseMonth(parts[0]) ?? undefined,
@@ -117,17 +120,18 @@ export function DurationRangePicker({
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<button
+				<Button
 					type="button"
+					variant="outline"
 					className={cn(
-						'border-border/50 bg-muted/40 text-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex h-8 w-full items-center gap-2 rounded-lg border px-3 py-1 text-left text-sm outline-none transition-colors focus-visible:ring-[3px]',
+						'border-border/50 bg-muted/40 h-8 w-full justify-start gap-2 rounded-lg px-3 text-sm font-normal',
 						!hasValue && 'text-muted-foreground/50',
 						className,
 					)}
 				>
 					<CalendarIcon className="text-muted-foreground/50 size-3.5 shrink-0" />
-					<span className="flex-1 truncate">{displayLabel}</span>
-				</button>
+					<span className="flex-1 truncate text-left">{displayLabel}</span>
+				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-0" align="start">
 				<Calendar
@@ -143,15 +147,19 @@ export function DurationRangePicker({
 						: {})}
 				/>
 				<div className="border-border/40 border-t px-4 py-3">
-					<label className="flex cursor-pointer items-center gap-2 text-sm">
-						<input
-							type="checkbox"
+					<div className="flex cursor-pointer items-center gap-2">
+						<Checkbox
+							id="is-present"
 							checked={isPresent}
-							onChange={handlePresentToggle}
-							className="accent-primary rounded"
+							onCheckedChange={handlePresentToggle}
 						/>
-						<span className="text-foreground/70">Currently working here</span>
-					</label>
+						<Label
+							htmlFor="is-present"
+							className="text-foreground/70 cursor-pointer text-sm"
+						>
+							Currently working here
+						</Label>
+					</div>
 				</div>
 			</PopoverContent>
 		</Popover>

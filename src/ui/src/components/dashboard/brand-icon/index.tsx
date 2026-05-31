@@ -1,6 +1,8 @@
 // src/components/BrandIcon/index.tsx
 import React from 'react';
 
+import { cn } from '@/lib/utils';
+
 import type { BrandIconName } from './brand-icons.types';
 
 interface BrandIconProps extends React.SVGProps<SVGSVGElement> {
@@ -19,7 +21,7 @@ export const BrandIcon = ({
 
 	return (
 		<svg
-			className={`inline-block align-middle ${className}`}
+			className={cn('inline-block align-middle', className)}
 			style={{ width: size, height: size }}
 			{...props}
 		>

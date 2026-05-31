@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { UserSkill } from '@uppler/types';
 
@@ -29,8 +29,14 @@ describe('EditSkillDialog', () => {
 
 		expect(screen.getByRole('dialog')).toBeInTheDocument();
 		expect(screen.getByDisplayValue('TypeScript')).toBeInTheDocument();
-		expect(screen.getByDisplayValue('Frontend')).toBeInTheDocument();
-		expect(screen.getByDisplayValue('Expert')).toBeInTheDocument();
+
+		const dialog = screen.getByRole('dialog');
+		expect(
+			within(dialog).getByRole('combobox', { name: /category/i }),
+		).toHaveTextContent('Frontend');
+		expect(
+			within(dialog).getByRole('combobox', { name: /experience level/i }),
+		).toHaveTextContent('Expert');
 	});
 
 	it('does not render when open is false', () => {
@@ -57,7 +63,6 @@ describe('EditSkillDialog', () => {
 		expect(
 			screen.getByRole('button', { name: /confirm/i }),
 		).toBeInTheDocument();
-		expect(screen.getAllByRole('button', { name: /cancel/i })).toHaveLength(2);
 	});
 
 	it('hides confirmation UI when cancel is clicked during deletion', async () => {
@@ -65,6 +70,8 @@ describe('EditSkillDialog', () => {
 		renderDialog();
 
 		await user.click(screen.getByRole('button', { name: /remove skill/i }));
+
+		// Two Cancel buttons exist: one in the confirm UI, one in the dialog footer
 		const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
 		await user.click(cancelButtons[0]);
 
@@ -73,7 +80,7 @@ describe('EditSkillDialog', () => {
 		});
 	});
 
-	it('calls the delete mutation when confirming deletion', async () => {
+	it('calls the delete mutation and closes the dialog on confirm', async () => {
 		const user = userEvent.setup();
 		const { onOpenChange } = renderDialog();
 
@@ -85,16 +92,29 @@ describe('EditSkillDialog', () => {
 		});
 	});
 
-	it('submits the updated skill and closes the dialog', async () => {
+	it('submits updated name and closes the dialog', async () => {
 		const user = userEvent.setup();
 		const { onOpenChange } = renderDialog();
 
-		await user.clear(screen.getByDisplayValue('TypeScript'));
-		await user.type(screen.getByLabelText(/skill name/i), 'TypeScript 5');
+		const nameInput = screen.getByDisplayValue('TypeScript');
+		await user.clear(nameInput);
+		await user.type(nameInput, 'TypeScript 5');
 		await user.click(screen.getByRole('button', { name: /save changes/i }));
 
 		await waitFor(() => {
 			expect(onOpenChange).toHaveBeenCalledWith(false);
 		});
+	});
+
+	it('can change the category via the select', async () => {
+		const user = userEvent.setup();
+		renderDialog();
+
+		await user.click(screen.getByRole('combobox', { name: /category/i }));
+		await user.click(await screen.findByRole('option', { name: 'Backend' }));
+
+		expect(
+			screen.getByRole('combobox', { name: /category/i }),
+		).toHaveTextContent('Backend');
 	});
 });

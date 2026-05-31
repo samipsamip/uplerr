@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
 
 import { authClient } from '@/auth-client';
+import { AuthFormShell } from '@/components/auth/auth-form-shell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
 	Field,
 	FieldDescription,
@@ -33,6 +33,7 @@ export function ForgotPasswordForm({
 	});
 	const navigate = useNavigate();
 	const [buttonDisabled, setButtonDisabled] = useState(false);
+
 	const handleOnSubmit = (data: ForgotPasswordSchemaType) => {
 		authClient.requestPasswordReset(
 			{
@@ -61,57 +62,50 @@ export function ForgotPasswordForm({
 	};
 
 	return (
-		<div className={cn('flex flex-col gap-6', className)} {...props}>
-			<Card className="overflow-hidden p-0">
-				<CardContent className="grid p-0 md:grid-cols-2">
-					<form
-						className="p-6 md:p-8"
-						onSubmit={handleSubmit(handleOnSubmit)}
-						onChange={handleFieldChanges}
-					>
-						<FieldGroup>
-							<div className="flex flex-col items-center gap-1 text-center">
-								<h1 className="text-2xl font-bold">Forgot your password? 😅</h1>
-								<p className="text-muted-foreground text-balance text-sm">
-									No worries, it happens to the best of us! 🤝
-								</p>
-							</div>
-							<Field>
-								<FieldLabel htmlFor="email">Email</FieldLabel>
-								<Input
-									id="email"
-									type="email"
-									placeholder="m@example.com"
-									{...register('email')}
-								/>
-								{errors.email?.message && (
-									<p className="text-xs text-red-500">
-										{errors.email?.message}
-									</p>
-								)}
-							</Field>
-							<Field>
-								<Button type="submit" disabled={buttonDisabled}>
-									Send reset link 📬
-								</Button>
-							</Field>
-							<FieldDescription className="text-center">
-								Remember your password?{' '}
-								<a href="/" className="underline underline-offset-4">
-									Back to login 🔑
-								</a>
-							</FieldDescription>
-						</FieldGroup>
-					</form>
-					<div className="bg-muted relative hidden overflow-hidden md:block">
-						<img
-							src="/forgot-password.png"
-							alt="Sidepanel"
-							className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-						/>
+		<AuthFormShell
+			imageSrc="/forgot-password.png"
+			imageAlt="Sidepanel"
+			className={cn(className)}
+			{...props}
+		>
+			<form
+				onSubmit={handleSubmit(handleOnSubmit)}
+				onChange={handleFieldChanges}
+			>
+				<FieldGroup>
+					<div className="flex flex-col items-center gap-1 text-center">
+						<h1 className="text-2xl font-bold">Forgot your password? 😅</h1>
+						<p className="text-muted-foreground text-balance text-sm">
+							No worries, it happens to the best of us! 🤝
+						</p>
 					</div>
-				</CardContent>
-			</Card>
-		</div>
+					<Field>
+						<FieldLabel htmlFor="email">Email</FieldLabel>
+						<Input
+							id="email"
+							type="email"
+							placeholder="m@example.com"
+							{...register('email')}
+						/>
+						{errors.email?.message && (
+							<p className="text-destructive text-xs">
+								{errors.email?.message}
+							</p>
+						)}
+					</Field>
+					<Field>
+						<Button type="submit" disabled={buttonDisabled}>
+							Send reset link 📬
+						</Button>
+					</Field>
+					<FieldDescription className="text-center">
+						Remember your password?{' '}
+						<a href="/" className="underline underline-offset-4">
+							Back to login 🔑
+						</a>
+					</FieldDescription>
+				</FieldGroup>
+			</form>
+		</AuthFormShell>
 	);
 }
