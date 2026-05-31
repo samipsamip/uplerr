@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import type { ResumeExtractionType } from '@uppler/types';
 
@@ -50,6 +50,15 @@ function ConfidenceBadge({ state }: { state: ConfidenceState }) {
 	);
 }
 
+function TimelineConnector({ isLast }: { isLast: boolean }) {
+	return (
+		<div className="flex shrink-0 flex-col items-center">
+			<div className="bg-accent/50 ring-accent/20 ring-offset-background mt-1.5 size-2 shrink-0 rounded-full ring-2 ring-offset-2" />
+			{!isLast && <div className="bg-border/40 mt-2 min-h-8 w-px flex-1" />}
+		</div>
+	);
+}
+
 function ExperienceEntry({
 	entry,
 	onUpdate,
@@ -67,6 +76,11 @@ function ExperienceEntry({
 	const [draft, setDraft] = useState(entry);
 	const [error, setError] = useState<string | null>(null);
 
+	const nextBulletId = useRef(entry.bullet_points.length);
+	const makeBulletIds = (bullets: string[]) =>
+		bullets.map(() => String(nextBulletId.current++));
+	const bulletIdsRef = useRef<string[]>(makeBulletIds(entry.bullet_points));
+
 	const commit = () => {
 		if (!draft.role?.trim()) {
 			setError('Role is required.');
@@ -81,6 +95,7 @@ function ExperienceEntry({
 		setEditing(false);
 	};
 	const discard = () => {
+		bulletIdsRef.current = makeBulletIds(entry.bullet_points);
 		setDraft(entry);
 		setError(null);
 		setEditing(false);
@@ -91,13 +106,20 @@ function ExperienceEntry({
 		next[i] = value;
 		setDraft({ ...draft, bullet_points: next });
 	};
-	const removeBullet = (i: number) =>
+	const removeBullet = (i: number) => {
+		bulletIdsRef.current = bulletIdsRef.current.filter((_, idx) => idx !== i);
 		setDraft({
 			...draft,
 			bullet_points: draft.bullet_points.filter((_, idx) => idx !== i),
 		});
-	const addBullet = () =>
+	};
+	const addBullet = () => {
+		bulletIdsRef.current = [
+			...bulletIdsRef.current,
+			String(nextBulletId.current++),
+		];
 		setDraft({ ...draft, bullet_points: [...draft.bullet_points, ''] });
+	};
 
 	const confidence = getConfidence(entry);
 	const dateRange = formatDateRange(entry);
@@ -105,10 +127,7 @@ function ExperienceEntry({
 	if (editing) {
 		return (
 			<div className="flex gap-4">
-				<div className="flex shrink-0 flex-col items-center">
-					<div className="bg-accent/50 ring-accent/20 ring-offset-background mt-1.5 size-2 shrink-0 rounded-full ring-2 ring-offset-2" />
-					{!isLast && <div className="bg-border/40 mt-2 min-h-8 w-px flex-1" />}
-				</div>
+				<TimelineConnector isLast={isLast} />
 				<div className={cn('flex-1', !isLast && 'pb-8')}>
 					<div className="border-border/50 bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
 						<div className="grid grid-cols-2 gap-3">
@@ -179,33 +198,40 @@ function ExperienceEntry({
 
 						<div className="flex flex-col gap-2">
 							<label className="text-muted-foreground text-xs">
-								Bullet points
+								Achievements & responsibilities
 							</label>
 							{draft.bullet_points.map((b, i) => (
-								<div key={i} className="flex items-center gap-2">
+								<div
+									key={bulletIdsRef.current[i]}
+									className="flex items-center gap-2"
+								>
 									<span className="text-muted-foreground/40 text-xs">·</span>
 									<Input
 										value={b}
 										onChange={(e) => updateBullet(i, e.target.value)}
 										className="h-7 text-sm"
 									/>
-									<button
+									<Button
 										type="button"
+										variant="ghost"
+										size="icon"
 										onClick={() => removeBullet(i)}
-										className="text-muted-foreground/40 hover:text-destructive shrink-0"
+										className="text-muted-foreground/40 hover:text-destructive size-5 shrink-0"
 									>
 										<X className="size-3" />
-									</button>
+									</Button>
 								</div>
 							))}
-							<button
+							<Button
 								type="button"
+								variant="ghost"
+								size="sm"
 								onClick={addBullet}
-								className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 self-start text-xs"
+								className="text-muted-foreground/50 hover:text-muted-foreground h-auto gap-1 self-start p-0 text-xs"
 							>
 								<Plus className="size-3" />
-								Add bullet
-							</button>
+								Add Achievement/Responsibility
+							</Button>
 						</div>
 
 						{error && <p className="text-destructive text-xs">{error}</p>}
@@ -227,10 +253,7 @@ function ExperienceEntry({
 
 	return (
 		<div className="group/entry flex gap-4">
-			<div className="flex shrink-0 flex-col items-center">
-				<div className="bg-accent/50 ring-accent/20 ring-offset-background mt-1.5 size-2 shrink-0 rounded-full ring-2 ring-offset-2" />
-				{!isLast && <div className="bg-border/40 mt-2 min-h-8 w-px flex-1" />}
-			</div>
+			<TimelineConnector isLast={isLast} />
 
 			<div className={cn('min-w-0 flex-1', !isLast && 'pb-8')}>
 				<div className="flex items-start justify-between gap-2">
@@ -248,22 +271,26 @@ function ExperienceEntry({
 					<div className="flex shrink-0 items-center gap-2 pt-0.5">
 						<ConfidenceBadge state={confidence} />
 						<div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/entry:opacity-100">
-							<button
+							<Button
 								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={() => setEditing(true)}
-								className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+								className="text-muted-foreground/40 hover:text-muted-foreground size-6"
 								aria-label="Edit"
 							>
 								<Pencil className="size-3.5" />
-							</button>
-							<button
+							</Button>
+							<Button
 								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onRemove}
-								className="text-muted-foreground/40 hover:text-destructive transition-colors"
+								className="text-muted-foreground/40 hover:text-destructive size-6"
 								aria-label="Remove"
 							>
 								<Trash2 className="size-3.5" />
-							</button>
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -272,7 +299,7 @@ function ExperienceEntry({
 					<ul className="mt-3 flex flex-col gap-1">
 						{entry.bullet_points.map((b, i) => (
 							<li
-								key={i}
+								key={bulletIdsRef.current[i]}
 								className="text-muted-foreground/70 flex gap-2 text-sm leading-relaxed"
 							>
 								<span className="mt-1.5 size-1 shrink-0 rounded-full bg-current opacity-40" />
@@ -323,14 +350,15 @@ export function ReviewExperienceSection({
 
 	if (experience.length === 0) {
 		return (
-			<button
+			<Button
 				type="button"
+				variant="outline"
 				onClick={add}
-				className="border-border text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-4 text-sm transition-colors"
+				className="w-full gap-1.5 rounded-xl border-dashed py-4"
 			>
 				<Plus className="size-4" />
 				Add experience
-			</button>
+			</Button>
 		);
 	}
 
@@ -338,7 +366,7 @@ export function ReviewExperienceSection({
 		<div className="flex flex-col">
 			{experience.map((entry, i) => (
 				<ExperienceEntry
-					key={`exp-${i}`}
+					key={`${entry.company ?? ''}-${entry.role ?? ''}`}
 					entry={entry}
 					onUpdate={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
@@ -346,14 +374,16 @@ export function ReviewExperienceSection({
 					autoEdit={i === newIndex}
 				/>
 			))}
-			<button
+			<Button
 				type="button"
+				variant="ghost"
+				size="sm"
 				onClick={add}
-				className="text-muted-foreground/50 hover:text-muted-foreground ml-6 mt-1 flex items-center gap-1 self-start text-sm transition-colors"
+				className="text-muted-foreground/50 hover:text-muted-foreground ml-6 mt-1 gap-1 self-start text-sm"
 			>
 				<Plus className="size-3.5" />
 				Add position
-			</button>
+			</Button>
 		</div>
 	);
 }

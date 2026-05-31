@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pencil } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { UserSkill } from '@/network/user-skills.service';
 
@@ -46,14 +47,16 @@ export function SkillCard({ skill }: { skill: UserSkill }) {
 				<SkillLevelBars level={skill.level} />
 				<span className="font-medium">{skill.name}</span>
 				<span className="text-muted-foreground text-xs">{label}</span>
-				<button
+				<Button
 					type="button"
+					variant="ghost"
+					size="icon"
 					onClick={() => setOpen(true)}
-					className="text-muted-foreground/40 hover:text-muted-foreground ml-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+					className="text-muted-foreground/40 hover:text-muted-foreground ml-0.5 size-5 opacity-0 transition-opacity group-hover:opacity-100"
 					aria-label={`Edit ${skill.name}`}
 				>
 					<Pencil className="size-3" />
-				</button>
+				</Button>
 			</div>
 
 			<EditSkillDialog skill={skill} open={open} onOpenChange={setOpen} />

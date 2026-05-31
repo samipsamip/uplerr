@@ -4,6 +4,7 @@ import type { ResumeExtractionType } from '@uppler/types';
 
 import { BrandIcon } from '@/components/dashboard/brand-icon';
 import type { BrandIconName } from '@/components/dashboard/brand-icon/brand-icons.types';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -52,18 +53,19 @@ function EditableField({
 
 	if (!editing) {
 		return (
-			<button
+			<Button
 				type="button"
+				variant="ghost"
 				onClick={() => setEditing(true)}
 				className={cn(
-					'group flex items-center gap-1.5 text-left',
+					'h-auto gap-1.5 p-0 text-left font-normal hover:bg-transparent',
 					!value && 'text-muted-foreground/40 italic',
 					className,
 				)}
 			>
 				<span>{value || (placeholder ?? `Add ${label.toLowerCase()}`)}</span>
 				<Pencil className="text-muted-foreground/40 size-3 shrink-0 opacity-0 transition group-hover:opacity-100" />
-			</button>
+			</Button>
 		);
 	}
 
@@ -80,22 +82,26 @@ function EditableField({
 				placeholder={label}
 				autoFocus
 			/>
-			<button
+			<Button
 				type="button"
+				variant="ghost"
+				size="icon"
 				onClick={commit}
-				className="text-accent hover:text-accent/80 shrink-0"
+				className="text-accent hover:text-accent/80 size-6 shrink-0"
 				aria-label="Save"
 			>
 				<Check className="size-3.5" />
-			</button>
-			<button
+			</Button>
+			<Button
 				type="button"
+				variant="ghost"
+				size="icon"
 				onClick={discard}
-				className="text-muted-foreground hover:text-foreground shrink-0"
+				className="text-muted-foreground hover:text-foreground size-6 shrink-0"
 				aria-label="Discard"
 			>
 				<X className="size-3.5" />
-			</button>
+			</Button>
 		</div>
 	);
 }

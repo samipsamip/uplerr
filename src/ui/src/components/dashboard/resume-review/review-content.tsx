@@ -44,6 +44,13 @@ export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 
 	const isDirty = JSON.stringify(data) !== JSON.stringify(initial);
 
+	const totalSkills =
+		data.skills.technical_skills.length +
+		data.skills.tools_platforms.length +
+		data.skills.spoken_languages.length +
+		data.skills.soft_skills.length;
+	const skillsCountLabel = totalSkills > 0 ? ` · ${totalSkills} extracted` : '';
+
 	const onConfirm = async () => {
 		try {
 			await mutateAsync(isDirty ? data : undefined);
@@ -59,14 +66,16 @@ export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 			{/* Sticky header */}
 			<div className="border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10 shrink-0 border-b backdrop-blur-sm">
 				<div className="relative flex items-center px-6 py-3 md:px-8">
-					<button
+					<Button
 						type="button"
+						variant="ghost"
+						size="sm"
 						onClick={() => navigate('/skills', { replace: true })}
-						className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm transition-colors"
+						className="text-muted-foreground hover:text-foreground gap-1.5"
 					>
 						<ArrowLeft className="size-4" />
 						Back
-					</button>
+					</Button>
 
 					<span className="pointer-events-none absolute inset-x-0 text-center text-sm font-medium">
 						Review your CV
@@ -133,18 +142,7 @@ export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 					</section>
 
 					<section className="mb-10">
-						<SectionLabel>
-							Skills
-							{(() => {
-								const total = [
-									...data.skills.technical_skills,
-									...data.skills.tools_platforms,
-									...data.skills.spoken_languages,
-									...data.skills.soft_skills,
-								].length;
-								return total > 0 ? ` · ${total} extracted` : '';
-							})()}
-						</SectionLabel>
+						<SectionLabel>Skills{skillsCountLabel}</SectionLabel>
 						<ReviewSkillsSection
 							skills={data.skills}
 							onChange={(skills) => setData((prev) => ({ ...prev, skills }))}

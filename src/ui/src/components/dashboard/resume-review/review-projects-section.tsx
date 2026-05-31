@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { getSkillIcon } from '@/lib/skill-icon';
+import { cn } from '@/lib/utils';
 
 type Project = ProjectExtractionType['projects'][number];
 
@@ -136,18 +137,21 @@ function ProjectCard({
 					</p>
 					<div className="flex gap-2">
 						{(['company', 'solo', 'freelance'] as const).map((t) => (
-							<button
+							<Button
 								key={t}
 								type="button"
+								variant="outline"
+								size="sm"
 								onClick={() => setDraft((d) => ({ ...d, type: t }))}
-								className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors ${
+								className={cn(
+									'rounded-lg border text-xs font-medium transition-colors',
 									draft.type === t
 										? TYPE_CLASSES[t]
-										: 'border-border/40 text-muted-foreground hover:border-border'
-								}`}
+										: 'border-border/40 text-muted-foreground hover:border-border',
+								)}
 							>
 								{TYPE_LABELS[t]}
-							</button>
+							</Button>
 						))}
 					</div>
 				</div>
@@ -184,15 +188,16 @@ function ProjectCard({
 								</span>
 							)}
 						</p>
-						<Badge className={`text-[10px] ${TYPE_CLASSES[project.type]}`}>
+						<Badge className={cn('text-[10px]', TYPE_CLASSES[project.type])}>
 							{TYPE_LABELS[project.type]}
 						</Badge>
 						<Badge
-							className={`text-[10px] ${
+							className={cn(
+								'border-0 text-[10px]',
 								isGood
-									? 'border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-									: 'border-0 bg-amber-500/10 text-amber-700 dark:text-amber-400'
-							}`}
+									? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+									: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+							)}
 						>
 							{isGood ? 'Looks good' : 'Review suggested'}
 						</Badge>
@@ -239,22 +244,26 @@ function ProjectCard({
 					)}
 				</div>
 				<div className="flex shrink-0 gap-1">
-					<button
+					<Button
 						type="button"
+						variant="ghost"
+						size="icon"
 						onClick={() => setEditing(true)}
-						className="text-muted-foreground/40 hover:text-foreground rounded p-1 transition-colors"
+						className="text-muted-foreground/40 hover:text-foreground size-6"
 						aria-label="Edit project"
 					>
 						<Pencil className="size-3.5" />
-					</button>
-					<button
+					</Button>
+					<Button
 						type="button"
+						variant="ghost"
+						size="icon"
 						onClick={onRemove}
-						className="text-muted-foreground/40 hover:text-destructive rounded p-1 transition-colors"
+						className="text-muted-foreground/40 hover:text-destructive size-6"
 						aria-label="Remove project"
 					>
 						<Trash2 className="size-3.5" />
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>
@@ -306,20 +315,22 @@ export function ReviewProjectsSection({
 		<div className="flex flex-col gap-3">
 			{projects.projects.map((project, i) => (
 				<ProjectCard
-					key={i}
+					key={project.name || 'project'}
 					project={project}
 					onSave={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
 				/>
 			))}
-			<button
+			<Button
 				type="button"
+				variant="outline"
+				size="sm"
 				onClick={addNew}
-				className="text-muted-foreground/40 hover:text-muted-foreground flex items-center gap-1.5 self-start rounded-lg border border-dashed px-3 py-1.5 text-xs transition-colors"
+				className="text-muted-foreground/40 hover:text-muted-foreground gap-1.5 self-start rounded-lg border-dashed text-xs"
 			>
 				<Plus className="size-3" />
 				Add project
-			</button>
+			</Button>
 		</div>
 	);
 }

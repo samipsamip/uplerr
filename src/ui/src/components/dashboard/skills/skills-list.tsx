@@ -58,14 +58,16 @@ export function SkillsList() {
 							{categorySkills.map((skill) => (
 								<SkillCard key={skill.id} skill={skill} />
 							))}
-							<button
+							<Button
 								onClick={() => setOpenDialog(true)}
 								type="button"
-								className="border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground flex items-center gap-1.5 rounded-xl border border-dashed px-3 py-2 text-sm transition-colors"
+								variant="outline"
+								size="sm"
+								className="border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/60 hover:text-foreground gap-1.5 rounded-xl border-dashed"
 							>
 								<Plus className="size-3.5" />
 								Add
-							</button>
+							</Button>
 						</div>
 					</div>
 				))

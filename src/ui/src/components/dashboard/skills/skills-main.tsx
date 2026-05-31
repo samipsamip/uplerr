@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
 import { DateTime, Interval } from 'luxon';
-import { toast } from 'sonner';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Fallback } from '@/components/ui/fallback';
@@ -30,10 +28,6 @@ const formatUploadedDateToHuman = (date?: string) => {
 
 export default function SkillsMain() {
 	const { data: skillData, isLoading, isError } = useGetUserProfile();
-
-	useEffect(() => {
-		if (isError) toast.error('Error loading the profile page');
-	}, [isError]);
 
 	if (isLoading) return <Fallback />;
 	if (isError) return <ErrorPage />;

@@ -106,15 +106,20 @@ export default function RoadmapsMain() {
 				<div className="flex items-center gap-3">
 					<div className="relative flex-1">
 						<Search className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
-						<Input placeholder="Search roadmaps..." className="bg-white pl-9" />
+						<Input
+							placeholder="Search roadmaps..."
+							className="bg-background pl-9"
+						/>
 					</div>
 					{/* Filter pills — wire up to state when ready */}
 					<div className="flex gap-2">
 						{(['active', 'completed', 'paused'] as const).map((s) => (
-							<button
+							<Button
 								key={s}
 								type="button"
-								className="border-border text-muted-foreground hover:border-border/80 hover:text-foreground flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition-colors"
+								variant="outline"
+								size="sm"
+								className="gap-1.5 text-xs"
 							>
 								<span
 									className={cn(
@@ -123,7 +128,7 @@ export default function RoadmapsMain() {
 									)}
 								/>
 								{STATUS_CONFIG[s].label}
-							</button>
+							</Button>
 						))}
 					</div>
 				</div>

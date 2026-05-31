@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { Controller,useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -15,7 +15,13 @@ import {
 import { Field, FieldError, FieldGroup } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '@/components/ui/select';
 import { useAddSkill } from '@/query/user-skills.query';
 
 import {
@@ -24,13 +30,6 @@ import {
 	skillFormSchema,
 	type SkillFormValues,
 } from './skill-form-schema';
-
-const selectClassName = cn(
-	'h-9 w-full rounded-md border border-input bg-input/30 px-3 py-1 text-sm',
-	'text-foreground outline-none transition-colors appearance-none',
-	'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
-	'disabled:pointer-events-none disabled:opacity-50',
-);
 
 type AddSkillDialogButtonProps = {
 	onOpenDialog: (open: boolean) => void;
@@ -47,6 +46,7 @@ export default function AddSkillsDialog({
 		register,
 		handleSubmit,
 		reset,
+		control,
 		formState: { errors },
 	} = useForm<SkillFormValues>({
 		resolver: zodResolver(skillFormSchema),
@@ -98,37 +98,53 @@ export default function AddSkillsDialog({
 
 						<Field>
 							<Label htmlFor="skill-category">Category</Label>
-							<select
-								id="skill-category"
-								className={selectClassName}
-								aria-invalid={!!errors.category}
-								{...register('category')}
-							>
-								<option value="">Select a category</option>
-								{CATEGORIES.map((cat) => (
-									<option key={cat} value={cat}>
-										{cat}
-									</option>
-								))}
-							</select>
+							<Controller
+								name="category"
+								control={control}
+								render={({ field }) => (
+									<Select onValueChange={field.onChange} value={field.value}>
+										<SelectTrigger
+											id="skill-category"
+											aria-invalid={!!errors.category}
+										>
+											<SelectValue placeholder="Select a category" />
+										</SelectTrigger>
+										<SelectContent>
+											{CATEGORIES.map((cat) => (
+												<SelectItem key={cat} value={cat}>
+													{cat}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							/>
 							<FieldError errors={[errors.category]} />
 						</Field>
 
 						<Field>
 							<Label htmlFor="skill-level">Experience level</Label>
-							<select
-								id="skill-level"
-								className={selectClassName}
-								aria-invalid={!!errors.level}
-								{...register('level')}
-							>
-								<option value="">Select a level</option>
-								{LEVELS.map(({ value, label }) => (
-									<option key={value} value={value}>
-										{label}
-									</option>
-								))}
-							</select>
+							<Controller
+								name="level"
+								control={control}
+								render={({ field }) => (
+									<Select onValueChange={field.onChange} value={field.value}>
+										<SelectTrigger
+											id="skill-level"
+											aria-invalid={!!errors.level}
+										>
+											<SelectValue placeholder="Select a level" />
+										</SelectTrigger>
+										<SelectContent>
+											{LEVELS.map(({ value, label }) => (
+												<SelectItem key={value} value={value}>
+													{label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								)}
+							/>
 							<FieldError errors={[errors.level]} />
 						</Field>
 					</FieldGroup>

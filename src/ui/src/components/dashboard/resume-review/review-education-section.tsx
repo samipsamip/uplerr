@@ -77,22 +77,26 @@ function EducationEntry({
 					</p>
 				</div>
 				<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover/edu:opacity-100">
-					<button
+					<Button
 						type="button"
+						variant="ghost"
+						size="icon"
 						onClick={() => setEditing(true)}
-						className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+						className="text-muted-foreground/40 hover:text-muted-foreground size-6"
 						aria-label="Edit"
 					>
 						<Pencil className="size-3.5" />
-					</button>
-					<button
+					</Button>
+					<Button
 						type="button"
+						variant="ghost"
+						size="icon"
 						onClick={onRemove}
-						className="text-muted-foreground/40 hover:text-destructive transition-colors"
+						className="text-muted-foreground/40 hover:text-destructive size-6"
 						aria-label="Remove"
 					>
 						<Trash2 className="size-3.5" />
-					</button>
+					</Button>
 				</div>
 			</div>
 		);
@@ -218,14 +222,15 @@ export function ReviewEducationSection({
 
 	if (education.length === 0) {
 		return (
-			<button
+			<Button
 				type="button"
+				variant="outline"
 				onClick={add}
-				className="border-border text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-4 text-sm transition-colors"
+				className="w-full gap-1.5 rounded-xl border-dashed py-4"
 			>
 				<Plus className="size-4" />
 				Add education
-			</button>
+			</Button>
 		);
 	}
 
@@ -233,21 +238,23 @@ export function ReviewEducationSection({
 		<div className="flex flex-col gap-4">
 			{education.map((entry, i) => (
 				<EducationEntry
-					key={i}
+					key={`${entry.institution ?? ''}-${entry.degree ?? ''}`}
 					entry={entry}
 					onUpdate={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
 					autoEdit={i === newIndex}
 				/>
 			))}
-			<button
+			<Button
 				type="button"
+				variant="ghost"
+				size="sm"
 				onClick={add}
-				className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 self-start text-sm transition-colors"
+				className="text-muted-foreground/50 hover:text-muted-foreground gap-1 self-start text-sm"
 			>
 				<Plus className="size-3.5" />
 				Add qualification
-			</button>
+			</Button>
 		</div>
 	);
 }
