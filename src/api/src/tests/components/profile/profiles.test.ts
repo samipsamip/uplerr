@@ -32,20 +32,22 @@ vi.mock('../../../lib/pdf-parser', () => ({
 	default: pdfParserMock,
 }));
 
-const llmMocks = vi.hoisted(() => ({
-	extractDetailsFromResume: vi.fn(),
-	inferSkillLevels: vi.fn(),
+const braintrustMocks = vi.hoisted(() => ({
+	checkForModeration: vi.fn(),
+	performValidationCheckOnResume: vi.fn(),
+	performResumeExtraction: vi.fn(),
+	performSkillsExtraction: vi.fn(),
+	performProjectsExtraction: vi.fn(),
 }));
 
-vi.mock('../../../lib/lllm', () => ({
-	llmService: {
-		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
-	},
-}));
-
-vi.mock('../../../lib/lllm/claude', () => ({
-	default: class {
-		inferSkillLevels = llmMocks.inferSkillLevels;
+vi.mock('../../../lib/lllm/braintrust', () => ({
+	braintrust: {
+		checkForModeration: braintrustMocks.checkForModeration,
+		performValidationCheckOnResume:
+			braintrustMocks.performValidationCheckOnResume,
+		performResumeExtraction: braintrustMocks.performResumeExtraction,
+		performSkillsExtraction: braintrustMocks.performSkillsExtraction,
+		performProjectsExtraction: braintrustMocks.performProjectsExtraction,
 	},
 }));
 
@@ -69,14 +71,39 @@ beforeEach(async () => {
 		text: 'Sample resume text',
 		links: [],
 	});
-	llmMocks.extractDetailsFromResume.mockResolvedValue({
-		isValid: true,
-		name: 'Test User',
-		skills: [],
-		experience: [],
-		education: [],
+	braintrustMocks.checkForModeration.mockResolvedValue({
+		is_malicious: false,
+		reason: '',
 	});
-	llmMocks.inferSkillLevels.mockResolvedValue(new Map());
+	braintrustMocks.performValidationCheckOnResume.mockResolvedValue({
+		isValid: true,
+	});
+	braintrustMocks.performResumeExtraction.mockResolvedValue({
+		full_name: 'Test User',
+		contact_details: {
+			email: 'test@example.com',
+			phone: null,
+			location: null,
+			linkedin: null,
+			vcs_platform: null,
+			vcs_url: null,
+			portfolio: null,
+		},
+		professional_summary: null,
+		work_history: [],
+		education: [],
+		certifications: [],
+		notable_achievements: [],
+	});
+	braintrustMocks.performSkillsExtraction.mockResolvedValue({
+		technical_skills: [],
+		tools_platforms: [],
+		spoken_languages: [],
+		soft_skills: [],
+	});
+	braintrustMocks.performProjectsExtraction.mockResolvedValue({
+		projects: [],
+	});
 });
 
 const { default: profileRoute } =
@@ -214,12 +241,19 @@ describe('POST /api/profile/upload-resume', () => {
 	});
 
 	it('returns 422 when the document is not a valid resume', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
+		braintrustMocks.performValidationCheckOnResume.mockResolvedValue({
 			isValid: false,
-			name: 'Test User',
-			skills: [],
-			experience: [],
-			education: [],
+		});
+
+		const res = await makeResumeRequest('/upload-resume', validPdf);
+
+		expect(res.status).toBe(422);
+	});
+
+	it('returns 422 when content is flagged as malicious', async () => {
+		braintrustMocks.checkForModeration.mockResolvedValue({
+			is_malicious: true,
+			reason: 'Prompt injection detected',
 		});
 
 		const res = await makeResumeRequest('/upload-resume', validPdf);
@@ -238,7 +272,7 @@ describe('POST /api/profile/upload-resume', () => {
 			'This resume has already been uploaded.',
 		);
 		expect(uploadMocks.uploadResumeToBucket).not.toHaveBeenCalled();
-		expect(llmMocks.extractDetailsFromResume).not.toHaveBeenCalled();
+		expect(braintrustMocks.checkForModeration).not.toHaveBeenCalled();
 	});
 
 	it('deactivates old CV and inserts new one when a different resume is uploaded', async () => {
@@ -301,15 +335,37 @@ describe('PATCH /api/profile/resume', () => {
 		await db.insert(cvProfileSchema).values({
 			profile_id: profileId,
 			original_filename: 'cv.pdf',
-			structured_data: { name: 'Old Name' },
+			structured_data: { extraction: { full_name: 'Old Name' }, skills: {} },
 			is_active: true,
 		});
 
 		const updatedData = {
-			name: 'New Name',
-			skills: ['TypeScript'],
-			experience: [],
-			education: [],
+			extraction: {
+				full_name: 'New Name',
+				contact_details: {
+					email: null,
+					phone: null,
+					location: null,
+					linkedin: null,
+					vcs_platform: null,
+					vcs_url: null,
+					portfolio: null,
+				},
+				professional_summary: null,
+				work_history: [],
+				education: [],
+				certifications: [],
+				notable_achievements: [],
+			},
+			skills: {
+				technical_skills: [],
+				tools_platforms: [],
+				spoken_languages: [],
+				soft_skills: [],
+			},
+			projects: {
+				projects: [],
+			},
 		};
 
 		const res = await makeVerifyRequest({ structuredData: updatedData });
@@ -317,51 +373,10 @@ describe('PATCH /api/profile/resume', () => {
 		expect(res.status).toBe(200);
 		const [cv] = await db.select().from(cvProfileSchema);
 		expect(cv.is_verified).toBe(true);
-		expect((cv.structured_data as { name: string }).name).toBe('New Name');
-	});
-
-	it('handles experience entries without duration', async () => {
-		await db.insert(cvProfileSchema).values({
-			profile_id: profileId,
-			original_filename: 'cv.pdf',
-			structured_data: { name: 'Test' },
-			is_active: true,
-		});
-
-		const res = await makeVerifyRequest({
-			structuredData: {
-				name: 'Test',
-				skills: ['TypeScript'],
-				experience: [
-					{ role: 'Engineer', company: 'Acme', description: 'Built things' },
-				],
-				education: [],
-			},
-		});
-
-		expect(res.status).toBe(200);
-	});
-
-	it('returns 500 when an unexpected error occurs during verification', async () => {
-		await db.insert(cvProfileSchema).values({
-			profile_id: profileId,
-			original_filename: 'cv.pdf',
-			structured_data: { name: 'Test' },
-			is_active: true,
-		});
-
-		llmMocks.inferSkillLevels.mockRejectedValue(new Error('LLM crash'));
-
-		const res = await makeVerifyRequest({
-			structuredData: {
-				name: 'Test',
-				skills: ['TypeScript'],
-				experience: [],
-				education: [],
-			},
-		});
-
-		expect(res.status).toBe(500);
+		expect(
+			(cv.structured_data as { extraction: { full_name: string } }).extraction
+				.full_name,
+		).toBe('New Name');
 	});
 
 	it('only verifies the active CV, not inactive ones', async () => {

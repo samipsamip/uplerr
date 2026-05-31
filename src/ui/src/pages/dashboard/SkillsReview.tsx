@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData } from '@uppler/types';
 
 import { ReviewContent } from '@/components/dashboard/resume-review/review-content';
 import type { SkillMatchMeta } from '@/network/profile.service';
@@ -9,7 +9,7 @@ import Layout from './Layout';
 export default function SkillsReview() {
 	const location = useLocation();
 	const structuredData = location.state?.structuredData as
-		| ResumeStructuredData
+		| CvStructuredData
 		| undefined;
 	const skillMatchMeta = location.state?.skillMatchMeta as
 		| SkillMatchMeta

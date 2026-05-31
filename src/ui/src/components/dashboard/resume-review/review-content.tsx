@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
 import type { SkillMatchMeta } from '@/network/profile.service';
@@ -17,26 +17,30 @@ import { ReviewSkillsSection } from './review-skills-section';
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
 	return (
-		<p className="text-muted-foreground mb-5 text-[11px] font-semibold uppercase tracking-[0.08em]">
+		<p className="text-muted-foreground/50 mb-5 text-[11px] font-semibold uppercase tracking-[0.08em]">
 			{children}
 		</p>
 	);
 }
 
 interface ReviewContentProps {
-	initial: ResumeStructuredData;
+	initial: CvStructuredData;
 	skillMatchMeta?: SkillMatchMeta;
 }
 
 export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 	const navigate = useNavigate();
 	const { mutateAsync, isPending } = useVerifyResume();
-	const [data, setData] = useState<ResumeStructuredData>(initial);
+	const [data, setData] = useState<CvStructuredData>(initial);
 
-	const set = <K extends keyof ResumeStructuredData>(
+	const setExtraction = <K extends keyof CvStructuredData['extraction']>(
 		key: K,
-		value: ResumeStructuredData[K],
-	) => setData((prev) => ({ ...prev, [key]: value }));
+		value: CvStructuredData['extraction'][K],
+	) =>
+		setData((prev) => ({
+			...prev,
+			extraction: { ...prev.extraction, [key]: value },
+		}));
 
 	const isDirty = JSON.stringify(data) !== JSON.stringify(initial);
 
@@ -86,21 +90,21 @@ export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 				</div>
 			</div>
 
-			{/* Two-column body */}
-			<div className="flex flex-1 overflow-hidden">
-				{/* Left — main content, 3/4 */}
-				<div className="min-w-0 flex-[3] overflow-auto px-8 py-8 md:px-10">
+			{/* Body: single column on mobile, two-column on md+ */}
+			<div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+				{/* Main content */}
+				<div className="min-w-0 flex-1 px-4 py-6 md:flex-[3] md:overflow-auto md:px-10 md:py-8">
 					<section className="mb-10">
 						<ReviewProfileSection
 							data={{
-								name: data.name,
-								email: data.email,
-								phone: data.phone,
-								location: data.location,
-								links: data.links,
+								full_name: data.extraction.full_name,
+								contact_details: data.extraction.contact_details,
 							}}
 							onChange={(updated) =>
-								setData((prev) => ({ ...prev, ...updated }))
+								setData((prev) => ({
+									...prev,
+									extraction: { ...prev.extraction, ...updated },
+								}))
 							}
 						/>
 					</section>
@@ -108,47 +112,58 @@ export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 					<section className="mb-10">
 						<SectionLabel>Experience</SectionLabel>
 						<ReviewExperienceSection
-							experience={data.experience}
-							onChange={(exp) => set('experience', exp)}
-						/>
-					</section>
-
-					<section className="mb-10">
-						<SectionLabel>
-							Skills
-							{data.skills.length > 0 && ` · ${data.skills.length} extracted`}
-						</SectionLabel>
-						<ReviewSkillsSection
-							skills={data.skills}
-							onChange={(skills) => set('skills', skills)}
-						/>
-					</section>
-
-					<section className="mb-10">
-						<SectionLabel>Education</SectionLabel>
-						<ReviewEducationSection
-							education={data.education}
-							onChange={(edu) => set('education', edu)}
+							experience={data.extraction.work_history}
+							onChange={(wh) => setExtraction('work_history', wh)}
 						/>
 					</section>
 
 					<section className="mb-10">
 						<SectionLabel>
 							Projects
-							{(data.projects?.length ?? 0) > 0 &&
-								` · ${data.projects!.length} found`}
+							{data.projects.projects.length > 0
+								? ` · ${data.projects.projects.length} extracted`
+								: ''}
 						</SectionLabel>
 						<ReviewProjectsSection
-							projects={data.projects ?? []}
-							onChange={(projects) => set('projects', projects)}
+							projects={data.projects}
+							onChange={(projects) =>
+								setData((prev) => ({ ...prev, projects }))
+							}
+						/>
+					</section>
+
+					<section className="mb-10">
+						<SectionLabel>
+							Skills
+							{(() => {
+								const total = [
+									...data.skills.technical_skills,
+									...data.skills.tools_platforms,
+									...data.skills.spoken_languages,
+									...data.skills.soft_skills,
+								].length;
+								return total > 0 ? ` · ${total} extracted` : '';
+							})()}
+						</SectionLabel>
+						<ReviewSkillsSection
+							skills={data.skills}
+							onChange={(skills) => setData((prev) => ({ ...prev, skills }))}
+						/>
+					</section>
+
+					<section className="mb-10">
+						<SectionLabel>Education</SectionLabel>
+						<ReviewEducationSection
+							education={data.extraction.education}
+							onChange={(edu) => setExtraction('education', edu)}
 						/>
 					</section>
 
 					<div className="h-16" />
 				</div>
 
-				{/* Right — AI sidebar, 1/4 */}
-				<div className="flex-1 overflow-hidden">
+				{/* Sidebar — full width below content on mobile, right column on md+ */}
+				<div className="border-border/40 border-t md:flex-1 md:overflow-hidden md:border-l md:border-t-0">
 					<AiSidebar data={data} skillMatchMeta={skillMatchMeta} />
 				</div>
 			</div>

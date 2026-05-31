@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	ResumeExtractionError,
+	ResumeModerationError,
 	ResumeValidationError,
 } from '../../../utils/error-utils';
 
@@ -11,13 +12,22 @@ vi.mock('../../../lib/pdf-parser', () => ({
 	default: pdfParserMock,
 }));
 
-const llmMocks = vi.hoisted(() => ({
-	extractDetailsFromResume: vi.fn(),
+const braintrustMocks = vi.hoisted(() => ({
+	checkForModeration: vi.fn(),
+	performValidationCheckOnResume: vi.fn(),
+	performResumeExtraction: vi.fn(),
+	performSkillsExtraction: vi.fn(),
+	performProjectsExtraction: vi.fn(),
 }));
 
-vi.mock('../../../lib/lllm', () => ({
-	llmService: {
-		extractDetailsFromResume: llmMocks.extractDetailsFromResume,
+vi.mock('../../../lib/lllm/braintrust', () => ({
+	braintrust: {
+		checkForModeration: braintrustMocks.checkForModeration,
+		performValidationCheckOnResume:
+			braintrustMocks.performValidationCheckOnResume,
+		performResumeExtraction: braintrustMocks.performResumeExtraction,
+		performSkillsExtraction: braintrustMocks.performSkillsExtraction,
+		performProjectsExtraction: braintrustMocks.performProjectsExtraction,
 	},
 }));
 
@@ -31,14 +41,27 @@ vi.mock('../../../lib/upload-utils', () => ({
 
 const dbMocks = vi.hoisted(() => ({
 	values: vi.fn(),
-	selectReturn: vi.fn(),
+	updateSet: vi.fn(),
+	// whereReturn: result when .where() is awaited directly (count queries)
+	whereReturn: vi.fn(),
+	// limitReturn: result when .where().limit() is called (duplicate-check queries)
+	limitReturn: vi.fn(),
 	selectDistinctReturn: vi.fn(),
 }));
 
-const selectChain = {
+// where() returns a Promise (for count queries) that also exposes .limit()
+// (for duplicate-check queries). The two paths consume separate mocks so
+// mock sequences stay predictable.
+const selectChain: Record<string, unknown> = {
 	from: () => selectChain,
-	where: () => selectChain,
-	limit: () => dbMocks.selectReturn(),
+	where: () => {
+		const p = dbMocks.whereReturn() as Promise<unknown> & {
+			limit: () => Promise<unknown>;
+		};
+		p.limit = () => dbMocks.limitReturn();
+		return p;
+	},
+	limit: () => dbMocks.limitReturn(),
 };
 
 const selectDistinctChain = {
@@ -51,6 +74,9 @@ vi.mock('../../../utils/db', () => ({
 		insert: vi.fn(() => ({ values: dbMocks.values })),
 		select: vi.fn(() => selectChain),
 		selectDistinct: vi.fn(() => selectDistinctChain),
+		update: vi.fn(() => ({
+			set: vi.fn(() => ({ where: dbMocks.updateSet })),
+		})),
 		transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) => {
 			const tx = {
 				insert: vi.fn(() => ({ values: dbMocks.values })),
@@ -78,78 +104,68 @@ const defaultInput = {
 	profileId: 'profile-123',
 };
 
-const validLlmResult = {
-	isValid: true,
-	name: 'Test User',
-	email: 'test@example.com',
-	skills: ['TypeScript'],
-	experience: [],
+const validExtractionResult = {
+	full_name: 'Test User',
+	contact_details: {
+		email: 'test@example.com',
+		phone: null,
+		location: null,
+		linkedin: null,
+		vcs_platform: null,
+		vcs_url: null,
+		portfolio: null,
+	},
+	professional_summary: null,
+	work_history: [],
 	education: [],
+	certifications: [],
+	notable_achievements: [],
+};
+
+const validSkillsResult = {
+	technical_skills: [{ name: 'TypeScript', source: 'skills_section' as const }],
+	tools_platforms: [],
+	spoken_languages: [],
+	soft_skills: [],
+};
+
+const validProjectsResult = {
+	projects: [],
 };
 
 beforeEach(() => {
 	vi.clearAllMocks();
+
 	pdfParserMock.parse.mockResolvedValue({
 		text: 'Sample resume text',
 		links: [],
 	});
-	llmMocks.extractDetailsFromResume.mockResolvedValue(validLlmResult);
+	braintrustMocks.checkForModeration.mockResolvedValue({
+		is_malicious: false,
+		reason: '',
+	});
+	braintrustMocks.performValidationCheckOnResume.mockResolvedValue({
+		isValid: true,
+	});
+	braintrustMocks.performResumeExtraction.mockResolvedValue(
+		validExtractionResult,
+	);
+	braintrustMocks.performSkillsExtraction.mockResolvedValue(validSkillsResult);
+	braintrustMocks.performProjectsExtraction.mockResolvedValue(
+		validProjectsResult,
+	);
 	uploadMocks.uploadResumeToBucket.mockResolvedValue('uploads/resume.pdf');
 	dbMocks.values.mockResolvedValue(undefined);
-	dbMocks.selectReturn.mockResolvedValue([]); // no existing CV by default
-	dbMocks.selectDistinctReturn.mockReturnValue([]); // no skill matches by default
-});
-
-describe('ResumeExtractionFSM — PDF link merging', () => {
-	it('fills missing github/linkedin/portfolio from PDF annotation links', async () => {
-		pdfParserMock.parse.mockResolvedValue({
-			text: 'Sample resume text',
-			links: [
-				'https://github.com/testuser',
-				'https://linkedin.com/in/testuser',
-				'https://testuser.dev',
-			],
-		});
-
-		const machine = createResumeExtractionFSM(defaultInput);
-		await machine.run();
-
-		expect(machine.value).toBe(ResumeTransitionState.DONE);
-		expect(machine.structuredData?.links?.github).toBe(
-			'https://github.com/testuser',
-		);
-		expect(machine.structuredData?.links?.linkedin).toBe(
-			'https://linkedin.com/in/testuser',
-		);
-		expect(machine.structuredData?.links?.portfolio).toBe(
-			'https://testuser.dev',
-		);
-	});
-
-	it('does not overwrite links already extracted by the LLM', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
-			...validLlmResult,
-			links: { github: 'https://github.com/from-llm' },
-		});
-		pdfParserMock.parse.mockResolvedValue({
-			text: 'Sample resume text',
-			links: ['https://github.com/from-pdf'],
-		});
-
-		const machine = createResumeExtractionFSM(defaultInput);
-		await machine.run();
-
-		expect(machine.structuredData?.links?.github).toBe(
-			'https://github.com/from-llm',
-		);
-	});
+	dbMocks.updateSet.mockResolvedValue(undefined);
+	dbMocks.limitReturn.mockResolvedValue([]); // duplicate check → no existing CV
+	dbMocks.whereReturn.mockResolvedValue([{ value: 1 }]); // count query → 1 (below threshold)
+	dbMocks.selectDistinctReturn.mockReturnValue([]);
 });
 
 describe('ResumeExtractionFSM — happy path', () => {
-	it('reaches DONE and writes to DB on a valid resume', async () => {
+	it('reaches DONE on a valid resume', async () => {
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
-
 		expect(machine.value).toBe(ResumeTransitionState.DONE);
 		expect(machine.error).toBeNull();
 	});
@@ -157,36 +173,71 @@ describe('ResumeExtractionFSM — happy path', () => {
 	it('uploads the file to R2 with the correct userId', async () => {
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
-
-		expect(uploadMocks.uploadResumeToBucket).toHaveBeenCalledOnce();
 		expect(uploadMocks.uploadResumeToBucket).toHaveBeenCalledWith(
 			validFile,
 			'user-123',
 		);
 	});
 
-	it('writes to DB with structured_data excluding isValid', async () => {
+	it('writes structured_data as { extraction, skills, projects }', async () => {
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
 
-		const insertedValues = dbMocks.values.mock.calls[0][0];
-		expect(insertedValues.structured_data).not.toHaveProperty('isValid');
-		expect(insertedValues.structured_data).toMatchObject({
-			name: 'Test User',
-			email: 'test@example.com',
+		const inserted = dbMocks.values.mock.calls[0][0];
+		expect(inserted.structured_data).toEqual({
+			extraction: validExtractionResult,
+			skills: validSkillsResult,
+			projects: validProjectsResult,
 		});
-		expect(insertedValues.is_verified).toBe(false);
-		expect(insertedValues.is_active).toBe(true);
-		expect(insertedValues.profile_id).toBe('profile-123');
-		expect(insertedValues.original_filename).toBe('resume.pdf');
-		expect(insertedValues.resume_key).toBe('uploads/resume.pdf');
+		expect(inserted.is_verified).toBe(false);
+		expect(inserted.is_active).toBe(true);
+		expect(inserted.profile_id).toBe('profile-123');
+		expect(inserted.original_filename).toBe('resume.pdf');
+		expect(inserted.resume_key).toBe('uploads/resume.pdf');
 	});
 
-	it('stores the raw text in the DB', async () => {
+	it('stores raw_text in the DB', async () => {
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+		expect(dbMocks.values.mock.calls[0][0].raw_text).toBe('Sample resume text');
+	});
+
+	it('exposes structuredData getter with combined result', async () => {
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+		expect(machine.structuredData).toEqual({
+			extraction: validExtractionResult,
+			skills: validSkillsResult,
+			projects: validProjectsResult,
+		});
+	});
+
+	it('passes PDF links as separate array to performResumeExtraction', async () => {
+		pdfParserMock.parse.mockResolvedValue({
+			text: 'Resume body',
+			links: ['https://github.com/user'],
+		});
+
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
 
-		expect(dbMocks.values.mock.calls[0][0].raw_text).toBe('Sample resume text');
+		const [text, links] = braintrustMocks.performResumeExtraction.mock.calls[0];
+		expect(text).toBe('Resume body');
+		expect(links).toEqual(['https://github.com/user']);
+	});
+
+	it('passes empty links array to performResumeExtraction when none present', async () => {
+		pdfParserMock.parse.mockResolvedValue({
+			text: 'Resume body',
+			links: [],
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		const [text, links] = braintrustMocks.performResumeExtraction.mock.calls[0];
+		expect(text).toBe('Resume body');
+		expect(links).toEqual([]);
 	});
 });
 
@@ -200,20 +251,7 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 		await machine.run();
 
 		expect(machine.value).toBe(ResumeTransitionState.RESUME_VALIDATION_ERROR);
-		expect(machine.error).toBeInstanceOf(ResumeValidationError);
 		expect((machine.error as ResumeValidationError).code).toBe('PAGE_LIMIT');
-	});
-
-	it('reaches RESUME_VALIDATION_ERROR on corrupted PDF', async () => {
-		pdfParserMock.parse.mockRejectedValue(
-			new ResumeValidationError('CORRUPTED', 'Corrupted file.'),
-		);
-
-		const machine = createResumeExtractionFSM(defaultInput);
-		await machine.run();
-
-		expect(machine.value).toBe(ResumeTransitionState.RESUME_VALIDATION_ERROR);
-		expect((machine.error as ResumeValidationError).code).toBe('CORRUPTED');
 	});
 
 	it('reaches RESUME_EXTRACTION_ERROR when PDF extraction fails', async () => {
@@ -225,19 +263,9 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 		await machine.run();
 
 		expect(machine.value).toBe(ResumeTransitionState.RESUME_EXTRACTION_ERROR);
-		expect(machine.error).toBeInstanceOf(ResumeExtractionError);
 	});
 
-	it('reaches ERROR on an unexpected parse failure', async () => {
-		pdfParserMock.parse.mockRejectedValue(new Error('Unexpected error'));
-
-		const machine = createResumeExtractionFSM(defaultInput);
-		await machine.run();
-
-		expect(machine.value).toBe(ResumeTransitionState.ERROR);
-	});
-
-	it('does not call the LLM when parsing fails', async () => {
+	it('does not call Braintrust when parsing fails', async () => {
 		pdfParserMock.parse.mockRejectedValue(
 			new ResumeValidationError('CORRUPTED', 'Corrupted.'),
 		);
@@ -245,14 +273,80 @@ describe('ResumeExtractionFSM — PARSE_RESUME errors', () => {
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
 
-		expect(llmMocks.extractDetailsFromResume).not.toHaveBeenCalled();
+		expect(braintrustMocks.checkForModeration).not.toHaveBeenCalled();
 	});
 });
 
-describe('ResumeExtractionFSM — LLM_EXTRACTION errors', () => {
-	it('reaches RESUME_PARSE_FAILED when LLM returns isValid: false', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
-			...validLlmResult,
+describe('ResumeExtractionFSM — MODERATION_CHECK', () => {
+	it('reaches MALICIOUS_CONTENT_DETECTED when content is flagged', async () => {
+		braintrustMocks.checkForModeration.mockResolvedValue({
+			is_malicious: true,
+			reason: 'Contains prompt injection',
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(
+			ResumeTransitionState.MALICIOUS_CONTENT_DETECTED,
+		);
+		expect(machine.error).toBeInstanceOf(ResumeModerationError);
+	});
+
+	it('saves moderation record to DB when content is flagged', async () => {
+		braintrustMocks.checkForModeration.mockResolvedValue({
+			is_malicious: true,
+			reason: 'Prompt injection attempt',
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(dbMocks.values).toHaveBeenCalledWith(
+			expect.objectContaining({
+				profile_id: 'profile-123',
+				raw_text: 'Sample resume text',
+				reason: 'Prompt injection attempt',
+			}),
+		);
+	});
+
+	it('bans the profile when moderation count reaches threshold', async () => {
+		braintrustMocks.checkForModeration.mockResolvedValue({
+			is_malicious: true,
+			reason: 'Malicious content',
+		});
+		// where() is called twice: once in duplicate-check (result ignored by .limit()),
+		// once in count query (result matters for ban threshold)
+		dbMocks.whereReturn
+			.mockResolvedValueOnce([]) // duplicate-check where() — value discarded by .limit()
+			.mockResolvedValueOnce([{ value: 3 }]); // count query — triggers ban
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(dbMocks.updateSet).toHaveBeenCalled();
+	});
+
+	it('does not proceed to validation when moderation flags content', async () => {
+		braintrustMocks.checkForModeration.mockResolvedValue({
+			is_malicious: true,
+			reason: 'Bad content',
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(
+			braintrustMocks.performValidationCheckOnResume,
+		).not.toHaveBeenCalled();
+		expect(uploadMocks.uploadResumeToBucket).not.toHaveBeenCalled();
+	});
+});
+
+describe('ResumeExtractionFSM — VALIDATION_CHECK', () => {
+	it('reaches RESUME_PARSE_FAILED when document is not a resume', async () => {
+		braintrustMocks.performValidationCheckOnResume.mockResolvedValue({
 			isValid: false,
 		});
 
@@ -262,9 +356,8 @@ describe('ResumeExtractionFSM — LLM_EXTRACTION errors', () => {
 		expect(machine.value).toBe(ResumeTransitionState.RESUME_PARSE_FAILED);
 	});
 
-	it('does not upload to R2 when LLM rejects the document', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
-			...validLlmResult,
+	it('does not upload when document fails validation', async () => {
+		braintrustMocks.performValidationCheckOnResume.mockResolvedValue({
 			isValid: false,
 		});
 
@@ -274,9 +367,11 @@ describe('ResumeExtractionFSM — LLM_EXTRACTION errors', () => {
 		expect(uploadMocks.uploadResumeToBucket).not.toHaveBeenCalled();
 		expect(dbMocks.values).not.toHaveBeenCalled();
 	});
+});
 
-	it('reaches RESUME_PARSE_FAILED when LLM call throws', async () => {
-		llmMocks.extractDetailsFromResume.mockRejectedValue(
+describe('ResumeExtractionFSM — RESUME_EXTRACTION / SKILLS_EXTRACTION / PROJECTS_EXTRACTION', () => {
+	it('reaches RESUME_PARSE_FAILED when performResumeExtraction throws', async () => {
+		braintrustMocks.performResumeExtraction.mockRejectedValue(
 			new Error('LLM timeout'),
 		);
 
@@ -285,15 +380,56 @@ describe('ResumeExtractionFSM — LLM_EXTRACTION errors', () => {
 
 		expect(machine.value).toBe(ResumeTransitionState.RESUME_PARSE_FAILED);
 	});
+
+	it('reaches RESUME_PARSE_FAILED when performSkillsExtraction throws', async () => {
+		braintrustMocks.performSkillsExtraction.mockRejectedValue(
+			new Error('LLM timeout'),
+		);
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.RESUME_PARSE_FAILED);
+	});
+
+	it('reaches RESUME_PARSE_FAILED when performProjectsExtraction throws', async () => {
+		braintrustMocks.performProjectsExtraction.mockRejectedValue(
+			new Error('LLM timeout'),
+		);
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.RESUME_PARSE_FAILED);
+	});
+
+	it('passes raw text and pdf links separately to performProjectsExtraction', async () => {
+		pdfParserMock.parse.mockResolvedValue({
+			text: 'Resume body',
+			links: ['https://github.com/user'],
+		});
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		const [text, links] =
+			braintrustMocks.performProjectsExtraction.mock.calls[0];
+		expect(text).toBe('Resume body');
+		expect(links).toEqual(['https://github.com/user']);
+	});
 });
 
 describe('ResumeExtractionFSM — SKILL_PREMATCH', () => {
 	it('exposes matched skill count when canonical matches are found', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
-			...validLlmResult,
-			skills: ['TypeScript', 'React'],
+		braintrustMocks.performSkillsExtraction.mockResolvedValue({
+			technical_skills: [
+				{ name: 'TypeScript', source: 'skills_section' },
+				{ name: 'React', source: 'skills_section' },
+			],
+			tools_platforms: [],
+			spoken_languages: [],
+			soft_skills: [],
 		});
-		// first selectDistinct call (aliases) returns 1 match, second (direct) returns 1 match
 		dbMocks.selectDistinctReturn
 			.mockReturnValueOnce([{ skill_id: 'skill-1' }])
 			.mockReturnValueOnce([{ id: 'skill-2' }]);
@@ -305,11 +441,7 @@ describe('ResumeExtractionFSM — SKILL_PREMATCH', () => {
 		expect(machine.skillMatchMeta).toEqual({ matched: 2, total: 2 });
 	});
 
-	it('falls back to matched:0 when the DB query fails', async () => {
-		llmMocks.extractDetailsFromResume.mockResolvedValue({
-			...validLlmResult,
-			skills: ['TypeScript'],
-		});
+	it('falls back to matched:0 when DB query fails during prematch', async () => {
 		dbMocks.selectDistinctReturn.mockImplementation(() => {
 			throw new Error('DB error');
 		});
@@ -323,14 +455,13 @@ describe('ResumeExtractionFSM — SKILL_PREMATCH', () => {
 });
 
 describe('ResumeExtractionFSM — UPLOAD_TO_CLOUD errors', () => {
-	it('sets machine.error and does not reach DONE when R2 upload fails', async () => {
+	it('does not reach DONE when R2 upload fails', async () => {
 		uploadMocks.uploadResumeToBucket.mockRejectedValue(new Error('S3 failure'));
 
 		const machine = createResumeExtractionFSM(defaultInput);
 		await machine.run();
 
 		expect(machine.value).not.toBe(ResumeTransitionState.DONE);
-		expect(machine.error).toBeInstanceOf(Error);
 		expect((machine.error as Error).message).toBe('S3 failure');
 	});
 

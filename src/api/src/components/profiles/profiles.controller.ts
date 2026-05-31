@@ -1,15 +1,17 @@
 import { eq } from 'drizzle-orm';
-import { type ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData, SkillExtractionType } from '@uppler/types';
 
 import { factory } from '../../lib/factory';
 import {
 	createResumeExtractionFSM,
 	ResumeTransitionState,
 } from '../../lib/fsm/ResumeExtractionFSM';
-import Claude from '../../lib/lllm/claude';
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
 import db from '../../utils/db';
-import { ResumeValidationError } from '../../utils/error-utils';
+import {
+	ResumeModerationError,
+	ResumeValidationError,
+} from '../../utils/error-utils';
 import {
 	getActiveCvProfile,
 	getUserProfileById,
@@ -17,9 +19,16 @@ import {
 	upsertCvExtractionSkills,
 } from './profiles.service';
 
-const claude = new Claude();
-
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+function flattenSkillNames(skills: SkillExtractionType): string[] {
+	return [
+		...skills.technical_skills,
+		...skills.tools_platforms,
+		...skills.spoken_languages,
+		...skills.soft_skills,
+	].map((s) => s.name);
+}
 
 export const getUserProfile = factory.createHandlers(async (c) => {
 	const user = c.get('user');
@@ -40,7 +49,7 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 							hasStructuredData: cvProfile.structured_data !== null,
 							is_verified: cvProfile.is_verified,
 							structuredData:
-								cvProfile.structured_data as ResumeStructuredData | null,
+								cvProfile.structured_data as CvStructuredData | null,
 						}
 					: null,
 			},
@@ -48,9 +57,7 @@ export const getUserProfile = factory.createHandlers(async (c) => {
 		);
 	} catch {
 		return c.json(
-			{
-				message: 'Error fetching user profile, please try again later',
-			},
+			{ message: 'Error fetching user profile, please try again later' },
 			500,
 		);
 	}
@@ -100,6 +107,19 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 
 		if (machine.value === ResumeTransitionState.RESUME_DUPLICATE) {
 			return c.json({ message: 'This resume has already been uploaded.' }, 200);
+		}
+
+		if (machine.value === ResumeTransitionState.MALICIOUS_CONTENT_DETECTED) {
+			const err = machine.error;
+			return c.json(
+				{
+					message:
+						err instanceof ResumeModerationError
+							? err.message
+							: 'Uploaded content was flagged for moderation.',
+				},
+				422,
+			);
 		}
 
 		if (machine.value === ResumeTransitionState.RESUME_VALIDATION_ERROR) {
@@ -156,7 +176,7 @@ export const createUserProfile = factory.createHandlers(async (c) => {
 
 export const verifyUserResume = factory.createHandlers(async (c) => {
 	const profileId = c.get('profileId');
-	const body = await c.req.json<{ structuredData?: ResumeStructuredData }>();
+	const body = await c.req.json<{ structuredData?: CvStructuredData }>();
 
 	const [active] = await getActiveCvProfile(profileId);
 	if (!active) {
@@ -166,7 +186,7 @@ export const verifyUserResume = factory.createHandlers(async (c) => {
 	try {
 		const structuredData =
 			body.structuredData ??
-			(active.structured_data as ResumeStructuredData | null);
+			(active.structured_data as CvStructuredData | null);
 
 		await db
 			.update(cvProfileSchema)
@@ -179,29 +199,18 @@ export const verifyUserResume = factory.createHandlers(async (c) => {
 			})
 			.where(eq(cvProfileSchema.id, active.id));
 
-		if (structuredData?.skills?.length) {
-			const rawSkills = structuredData.skills;
-			const workHistoryText = structuredData.experience
-				.map(
-					(e) =>
-						`${e.role} at ${e.company}${e.duration ? ` (${e.duration})` : ''}: ${e.description ?? ''}`,
-				)
-				.join('\n\n');
-
-			const [normalized, levelMap] = await Promise.all([
-				normalizeExtractedSkills(rawSkills),
-				claude.inferSkillLevels(rawSkills, workHistoryText),
-			]);
-
-			const skillsToUpsert = normalized.map((s) => ({
-				canonicalName: s.canonicalName,
-				canonicalId: s.canonicalId,
-				category: s.category,
-				level:
-					levelMap.get(s.rawName.toLowerCase()) ?? ('intermediate' as const),
-			}));
-
-			await upsertCvExtractionSkills(profileId, skillsToUpsert);
+		if (structuredData?.skills) {
+			const rawSkillNames = flattenSkillNames(structuredData.skills);
+			if (rawSkillNames.length > 0) {
+				const normalized = await normalizeExtractedSkills(rawSkillNames);
+				const skillsToUpsert = normalized.map((s) => ({
+					canonicalName: s.canonicalName,
+					canonicalId: s.canonicalId,
+					category: s.category,
+					level: 'intermediate' as const,
+				}));
+				await upsertCvExtractionSkills(profileId, skillsToUpsert);
+			}
 		}
 
 		return c.json({ message: 'CV verified successfully.' }, 200);

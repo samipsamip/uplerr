@@ -13,13 +13,29 @@ export const authMiddleWare = factory.createMiddleware(async (c, next) => {
 	const { user, session } = authSession;
 
 	const [profile] = await db
-		.select({ id: profileSchema.id })
+		.select({
+			id: profileSchema.id,
+			is_banned: profileSchema.is_banned,
+			ban_reason: profileSchema.ban_reason,
+		})
 		.from(profileSchema)
 		.where(eq(profileSchema.user_id, user.id))
 		.limit(1);
 
 	if (!profile) {
 		return c.json({ message: 'Profile not found' }, 404);
+	}
+
+	if (profile.is_banned) {
+		return c.json(
+			{
+				message:
+					profile.ban_reason ??
+					'Your account has been suspended. Please contact support.',
+				code: 'BANNED',
+			},
+			403,
+		);
 	}
 
 	c.set('user', user);

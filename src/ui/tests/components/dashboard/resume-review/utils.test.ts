@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ResumeExtractionType, SkillExtractionType } from '@uppler/types';
 
 import {
 	categorizeSkills,
@@ -59,11 +60,22 @@ describe('categorizeSkills', () => {
 // estimateYearsOfExperience
 // ---------------------------------------------------------------------------
 
+const makeEntry = (
+	startNorm: string | null,
+	endNorm: string | null,
+	isCurrent = false,
+): ResumeExtractionType['work_history'][number] => ({
+	company: 'A',
+	role: 'Dev',
+	start_date: { raw: startNorm, normalized: startNorm },
+	end_date: { raw: endNorm, normalized: endNorm },
+	is_current: isCurrent,
+	bullet_points: [],
+});
+
 describe('estimateYearsOfExperience', () => {
 	it('returns null when no entries have durations', () => {
-		expect(
-			estimateYearsOfExperience([{ role: 'Dev', company: 'A' }]),
-		).toBeNull();
+		expect(estimateYearsOfExperience([makeEntry(null, null)])).toBeNull();
 	});
 
 	it('returns null for an empty array', () => {
@@ -72,23 +84,22 @@ describe('estimateYearsOfExperience', () => {
 
 	it('parses ISO YYYY-MM range', () => {
 		const result = estimateYearsOfExperience([
-			{ role: 'Dev', company: 'A', duration: '2020-01 – 2022-01' },
+			makeEntry('2020-01-01', '2022-01-01'),
 		]);
 		expect(result).toBe(2);
 	});
 
 	it('parses "MMM yyyy" range', () => {
 		const result = estimateYearsOfExperience([
-			{ role: 'Dev', company: 'A', duration: 'Jan 2019 – Jan 2023' },
+			makeEntry('2019-01-01', '2023-01-01'),
 		]);
 		expect(result).toBe(4);
 	});
 
 	it('handles Present as end date', () => {
-		const now = new Date();
-		const startYear = now.getFullYear() - 2;
+		const startYear = new Date().getFullYear() - 2;
 		const result = estimateYearsOfExperience([
-			{ role: 'Dev', company: 'A', duration: `Jan ${startYear} – Present` },
+			makeEntry(`${startYear}-01-01`, null, true),
 		]);
 		expect(typeof result).toBe('number');
 		expect(result).toBeGreaterThanOrEqual(2);
@@ -96,8 +107,8 @@ describe('estimateYearsOfExperience', () => {
 
 	it('sums multiple entries', () => {
 		const result = estimateYearsOfExperience([
-			{ role: 'Dev', company: 'A', duration: '2018-01 – 2020-01' },
-			{ role: 'Dev', company: 'B', duration: '2020-06 – 2022-06' },
+			makeEntry('2018-01-01', '2020-01-01'),
+			makeEntry('2020-06-01', '2022-06-01'),
 		]);
 		expect(result).toBe(4);
 	});
@@ -107,43 +118,103 @@ describe('estimateYearsOfExperience', () => {
 // computeProfileStrength
 // ---------------------------------------------------------------------------
 
-describe('computeProfileStrength', () => {
-	const base = {
-		name: '',
-		skills: [],
-		experience: [],
-		education: [],
-		projects: [],
-	};
+const emptySkills: SkillExtractionType = {
+	technical_skills: [],
+	tools_platforms: [],
+	spoken_languages: [],
+	soft_skills: [],
+};
 
+const emptyExtraction: ResumeExtractionType = {
+	full_name: null,
+	contact_details: {
+		email: null,
+		phone: null,
+		location: null,
+		linkedin: null,
+		vcs_platform: null,
+		vcs_url: null,
+		portfolio: null,
+	},
+	professional_summary: null,
+	work_history: [],
+	education: [],
+	certifications: [],
+	notable_achievements: [],
+};
+
+describe('computeProfileStrength', () => {
 	it('returns 0 for completely empty data', () => {
-		expect(computeProfileStrength(base)).toBe(0);
+		expect(
+			computeProfileStrength({
+				extraction: emptyExtraction,
+				skills: emptySkills,
+				projects: { projects: [] },
+			}),
+		).toBe(0);
 	});
 
 	it('adds points for name + location', () => {
 		const score = computeProfileStrength({
-			...base,
-			name: 'Alice',
-			location: 'AU',
+			extraction: {
+				...emptyExtraction,
+				full_name: 'Alice',
+				contact_details: { ...emptyExtraction.contact_details, location: 'AU' },
+			},
+			skills: emptySkills,
+			projects: { projects: [] },
 		});
 		expect(score).toBeGreaterThan(0);
 	});
 
 	it('caps at 100', () => {
-		const score = computeProfileStrength({
-			name: 'Alice',
-			email: 'a@b.com',
-			phone: '123',
-			location: 'AU',
-			links: { linkedin: 'l', github: 'g', portfolio: 'p' },
-			skills: Array.from({ length: 20 }, (_, i) => `Skill${i}`),
-			experience: Array.from({ length: 5 }, () => ({
-				role: 'Dev',
-				company: 'A',
-				description: 'A'.repeat(100),
+		const bigSkills: SkillExtractionType = {
+			technical_skills: Array.from({ length: 10 }, (_, i) => ({
+				name: `Skill${i}`,
+				source: 'skills_section' as const,
 			})),
-			education: [{ degree: 'BSc', institution: 'Uni' }],
-			projects: [{ name: 'P' }],
+			tools_platforms: Array.from({ length: 10 }, (_, i) => ({
+				name: `Tool${i}`,
+				source: 'skills_section' as const,
+			})),
+			spoken_languages: [],
+			soft_skills: [],
+		};
+		const score = computeProfileStrength({
+			extraction: {
+				full_name: 'Alice',
+				contact_details: {
+					email: 'a@b.com',
+					phone: '123',
+					location: 'AU',
+					linkedin: 'l',
+					vcs_platform: 'GitHub' as const,
+					vcs_url: 'g',
+					portfolio: 'p',
+				},
+				professional_summary: null,
+				work_history: Array.from({ length: 5 }, () => ({
+					company: 'A',
+					role: 'Dev',
+					start_date: { raw: '2020-01-01', normalized: '2020-01-01' },
+					end_date: { raw: null, normalized: null },
+					is_current: true,
+					bullet_points: ['Did stuff', 'Did more stuff'],
+				})),
+				education: [
+					{
+						institution: 'Uni',
+						degree: 'BSc',
+						field_of_study: null,
+						start_date: { raw: null, normalized: null },
+						end_date: { raw: null, normalized: null },
+					},
+				],
+				certifications: [],
+				notable_achievements: [],
+			},
+			skills: bigSkills,
+			projects: { projects: [] },
 		});
 		expect(score).toBeLessThanOrEqual(100);
 	});
@@ -179,36 +250,40 @@ describe('strengthLabel', () => {
 // detectProfileType
 // ---------------------------------------------------------------------------
 
+const makeSkills = (names: string[]): SkillExtractionType => ({
+	technical_skills: names.map((n) => ({
+		name: n,
+		source: 'skills_section' as const,
+	})),
+	tools_platforms: [],
+	spoken_languages: [],
+	soft_skills: [],
+});
+
 describe('detectProfileType', () => {
 	it('detects full-stack with cloud', () => {
-		const result = detectProfileType([
-			'Node.js',
-			'Python',
-			'React',
-			'AWS',
-			'Docker',
-			'Terraform',
-		]);
+		const result = detectProfileType(
+			makeSkills(['Node.js', 'Python', 'React', 'AWS', 'Docker', 'Terraform']),
+		);
 		expect(result).toMatch(/full-stack.*cloud/i);
 	});
 
 	it('detects frontend', () => {
-		const result = detectProfileType(['React', 'Vue', 'Angular', 'TypeScript']);
+		const result = detectProfileType(
+			makeSkills(['React', 'Vue', 'Angular', 'TypeScript']),
+		);
 		expect(result).toMatch(/frontend/i);
 	});
 
 	it('detects backend', () => {
-		const result = detectProfileType([
-			'Node.js',
-			'Python',
-			'Django',
-			'Express',
-		]);
+		const result = detectProfileType(
+			makeSkills(['Node.js', 'Python', 'Django', 'Express']),
+		);
 		expect(result).toMatch(/backend/i);
 	});
 
 	it('falls back to software engineering for mixed/unknown', () => {
-		const result = detectProfileType(['Photoshop', 'Illustrator']);
+		const result = detectProfileType(makeSkills(['Photoshop', 'Illustrator']));
 		expect(result).toMatch(/software engineering/i);
 	});
 });

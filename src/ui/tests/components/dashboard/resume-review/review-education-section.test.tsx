@@ -2,29 +2,33 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { ResumeExtractionType } from '@uppler/types';
 
 import { ReviewEducationSection } from '@/components/dashboard/resume-review/review-education-section';
 
 import { renderWithProviders } from '../../../helpers/render';
 
-type Education = ResumeStructuredData['education'];
+type Education = ResumeExtractionType['education'];
 
 function Controlled({ initial }: { initial: Education }) {
 	const [edu, setEdu] = useState(initial);
 	return <ReviewEducationSection education={edu} onChange={setEdu} />;
 }
 
-const education = [
+const education: Education = [
 	{
 		degree: 'Bachelor of Computer Science',
 		institution: 'Tech University',
-		year: '2020',
+		field_of_study: 'Computer Science',
+		start_date: { raw: 'Sep 2016', normalized: null },
+		end_date: { raw: '2020', normalized: null },
 	},
 	{
 		degree: 'Diploma in Web Development',
 		institution: 'Online Academy',
-		year: '2018',
+		field_of_study: null,
+		start_date: { raw: null, normalized: null },
+		end_date: { raw: '2018', normalized: null },
 	},
 ];
 
@@ -144,13 +148,11 @@ describe('ReviewEducationSection — edit', () => {
 describe('ReviewEducationSection — add entry', () => {
 	it('appends a new entry and opens it immediately in edit mode', async () => {
 		const user = userEvent.setup();
-		// Use stateful wrapper so the new entry is re-rendered and autoEdit kicks in
 		renderWithProviders(<Controlled initial={education} />);
 
 		await user.click(screen.getByText(/add qualification/i));
 
-		// New entry renders in edit mode: degree/institution inputs visible
 		const degreeInputs = screen.getAllByRole('textbox');
-		expect(degreeInputs.length).toBeGreaterThan(2); // > original 2 entries' display fields
+		expect(degreeInputs.length).toBeGreaterThan(2);
 	});
 });

@@ -1,76 +1,28 @@
 import { useState } from 'react';
 import { Check, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { ResumeExtractionType } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-import { DurationRangePicker } from './duration-range-picker';
-
-type Experience = ResumeStructuredData['experience'][number];
-
-const TECH_KEYWORDS = [
-	'React',
-	'TypeScript',
-	'JavaScript',
-	'Node.js',
-	'Python',
-	'Go',
-	'Java',
-	'Rust',
-	'Docker',
-	'Kubernetes',
-	'Terraform',
-	'AWS',
-	'GCP',
-	'Google Cloud Platform',
-	'Azure',
-	'Firebase',
-	'PostgreSQL',
-	'Postgres',
-	'MySQL',
-	'MongoDB',
-	'Redis',
-	'SQL',
-	'NoSQL',
-	'Next.js',
-	'Vue',
-	'Angular',
-	'Express',
-	'Django',
-	'FastAPI',
-	'HubSpot',
-	'Stripe',
-	'Bookshelf',
-	'Sequelize',
-	'CloudWatch',
-	'Pub/Sub',
-	'Cloudbuild',
-	'CodeCommit',
-	'RDS',
-	'S3',
-	'GraphQL',
-	'Ant Design Library',
-	'Tailwind',
-	'Ngrok',
-];
-
-function extractTech(description: string | undefined): string[] {
-	if (!description) return [];
-	return TECH_KEYWORDS.filter((t) =>
-		description.toLowerCase().includes(t.toLowerCase()),
-	).slice(0, 6);
-}
+type WorkEntry = ResumeExtractionType['work_history'][number];
 
 type ConfidenceState = 'good' | 'review' | 'extracted';
 
-function getConfidence(entry: Experience): ConfidenceState {
-	const hasCore = entry.role && entry.company && entry.duration;
-	const hasDetail = (entry.description?.length ?? 0) > 100;
+function getConfidence(entry: WorkEntry): ConfidenceState {
+	const hasCore = entry.role && entry.company && entry.start_date.raw;
+	const hasDetail = entry.bullet_points.length >= 2;
 	if (hasCore && hasDetail) return 'good';
 	if (hasCore) return 'extracted';
 	return 'review';
+}
+
+function formatDateRange(entry: WorkEntry): string {
+	const start = entry.start_date.raw ?? '';
+	const end = entry.is_current ? 'Present' : (entry.end_date.raw ?? '');
+	if (!start && !end) return '';
+	return `${start} – ${end}`;
 }
 
 function ConfidenceBadge({ state }: { state: ConfidenceState }) {
@@ -98,8 +50,6 @@ function ConfidenceBadge({ state }: { state: ConfidenceState }) {
 	);
 }
 
-const TRUNCATE_AT = 180;
-
 function ExperienceEntry({
 	entry,
 	onUpdate,
@@ -107,32 +57,50 @@ function ExperienceEntry({
 	isLast,
 	autoEdit,
 }: {
-	entry: Experience;
-	onUpdate: (updated: Experience) => void;
+	entry: WorkEntry;
+	onUpdate: (updated: WorkEntry) => void;
 	onRemove: () => void;
 	isLast: boolean;
 	autoEdit?: boolean;
 }) {
 	const [editing, setEditing] = useState(autoEdit ?? false);
 	const [draft, setDraft] = useState(entry);
-	const [expanded, setExpanded] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const commit = () => {
+		if (!draft.role?.trim()) {
+			setError('Role is required.');
+			return;
+		}
+		if (!draft.company?.trim()) {
+			setError('Company is required.');
+			return;
+		}
+		setError(null);
 		onUpdate(draft);
 		setEditing(false);
 	};
 	const discard = () => {
 		setDraft(entry);
+		setError(null);
 		setEditing(false);
 	};
 
-	const tech = extractTech(entry.description);
+	const updateBullet = (i: number, value: string) => {
+		const next = [...draft.bullet_points];
+		next[i] = value;
+		setDraft({ ...draft, bullet_points: next });
+	};
+	const removeBullet = (i: number) =>
+		setDraft({
+			...draft,
+			bullet_points: draft.bullet_points.filter((_, idx) => idx !== i),
+		});
+	const addBullet = () =>
+		setDraft({ ...draft, bullet_points: [...draft.bullet_points, ''] });
+
 	const confidence = getConfidence(entry);
-	const isLongDesc = (entry.description?.length ?? 0) > TRUNCATE_AT;
-	const displayDesc =
-		expanded || !isLongDesc
-			? entry.description
-			: entry.description?.slice(0, TRUNCATE_AT) + '…';
+	const dateRange = formatDateRange(entry);
 
 	if (editing) {
 		return (
@@ -147,47 +115,100 @@ function ExperienceEntry({
 							<div className="flex flex-col gap-1">
 								<label className="text-muted-foreground text-xs">Role</label>
 								<Input
-									value={draft.role}
-									onChange={(e) => setDraft({ ...draft, role: e.target.value })}
+									value={draft.role ?? ''}
+									onChange={(e) =>
+										setDraft({ ...draft, role: e.target.value || null })
+									}
 									className="h-8 text-sm"
 								/>
 							</div>
 							<div className="flex flex-col gap-1">
 								<label className="text-muted-foreground text-xs">Company</label>
 								<Input
-									value={draft.company}
+									value={draft.company ?? ''}
 									onChange={(e) =>
-										setDraft({ ...draft, company: e.target.value })
+										setDraft({ ...draft, company: e.target.value || null })
 									}
 									className="h-8 text-sm"
 								/>
 							</div>
-							<div className="col-span-2 flex flex-col gap-1">
-								<label className="text-muted-foreground text-xs">
-									Duration
-								</label>
-								<DurationRangePicker
-									value={draft.duration}
-									onChange={(v) => setDraft({ ...draft, duration: v })}
-								/>
-							</div>
-							<div className="col-span-2 flex flex-col gap-1">
-								<label className="text-muted-foreground text-xs">
-									Description
-								</label>
-								<textarea
-									value={draft.description ?? ''}
+							<div className="flex flex-col gap-1">
+								<label className="text-muted-foreground text-xs">Start</label>
+								<Input
+									value={draft.start_date.raw ?? ''}
 									onChange={(e) =>
 										setDraft({
 											...draft,
-											description: e.target.value || undefined,
+											start_date: {
+												...draft.start_date,
+												raw: e.target.value || null,
+											},
 										})
 									}
-									className="border-border/50 bg-muted/40 text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-[80px] w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
-									placeholder="Key responsibilities or highlights"
+									className="h-8 text-sm"
+									placeholder="e.g. Jan 2020"
+								/>
+							</div>
+							<div className="flex flex-col gap-1">
+								<label className="text-muted-foreground text-xs">
+									End{' '}
+									<span className="text-muted-foreground/50">
+										(or "Present")
+									</span>
+								</label>
+								<Input
+									value={
+										draft.is_current ? 'Present' : (draft.end_date.raw ?? '')
+									}
+									onChange={(e) => {
+										const val = e.target.value;
+										const isCurrent = val.toLowerCase() === 'present';
+										setDraft({
+											...draft,
+											is_current: isCurrent,
+											end_date: isCurrent
+												? { raw: null, normalized: null }
+												: { ...draft.end_date, raw: val || null },
+										});
+									}}
+									className="h-8 text-sm"
+									placeholder="e.g. Mar 2024 or Present"
 								/>
 							</div>
 						</div>
+
+						<div className="flex flex-col gap-2">
+							<label className="text-muted-foreground text-xs">
+								Bullet points
+							</label>
+							{draft.bullet_points.map((b, i) => (
+								<div key={i} className="flex items-center gap-2">
+									<span className="text-muted-foreground/40 text-xs">·</span>
+									<Input
+										value={b}
+										onChange={(e) => updateBullet(i, e.target.value)}
+										className="h-7 text-sm"
+									/>
+									<button
+										type="button"
+										onClick={() => removeBullet(i)}
+										className="text-muted-foreground/40 hover:text-destructive shrink-0"
+									>
+										<X className="size-3" />
+									</button>
+								</div>
+							))}
+							<button
+								type="button"
+								onClick={addBullet}
+								className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 self-start text-xs"
+							>
+								<Plus className="size-3" />
+								Add bullet
+							</button>
+						</div>
+
+						{error && <p className="text-destructive text-xs">{error}</p>}
 						<div className="flex items-center justify-end gap-2">
 							<Button variant="ghost" size="sm" onClick={discard}>
 								<X className="mr-1 size-3" />
@@ -219,11 +240,8 @@ function ExperienceEntry({
 						</p>
 						<p className="text-muted-foreground mt-0.5 text-sm">
 							{entry.company}
-							{entry.duration && (
-								<span className="text-muted-foreground/60">
-									{' '}
-									· {entry.duration}
-								</span>
+							{dateRange && (
+								<span className="text-muted-foreground/60"> · {dateRange}</span>
 							)}
 						</p>
 					</div>
@@ -250,34 +268,18 @@ function ExperienceEntry({
 					</div>
 				</div>
 
-				{entry.description && (
-					<div className="mt-3">
-						<p className="text-muted-foreground/70 text-sm leading-relaxed">
-							{displayDesc}
-						</p>
-						{isLongDesc && (
-							<button
-								type="button"
-								onClick={() => setExpanded(!expanded)}
-								className="text-accent/60 hover:text-accent mt-1 text-xs transition-colors"
+				{entry.bullet_points.length > 0 && (
+					<ul className="mt-3 flex flex-col gap-1">
+						{entry.bullet_points.map((b, i) => (
+							<li
+								key={i}
+								className="text-muted-foreground/70 flex gap-2 text-sm leading-relaxed"
 							>
-								{expanded ? 'Show less' : 'Show more'}
-							</button>
-						)}
-					</div>
-				)}
-
-				{tech.length > 0 && (
-					<div className="mt-3 flex flex-wrap gap-1.5">
-						{tech.map((t) => (
-							<span
-								key={t}
-								className="bg-muted/70 text-muted-foreground/70 rounded-md px-2 py-0.5 text-xs"
-							>
-								{t}
-							</span>
+								<span className="mt-1.5 size-1 shrink-0 rounded-full bg-current opacity-40" />
+								{b}
+							</li>
 						))}
-					</div>
+					</ul>
 				)}
 			</div>
 		</div>
@@ -285,8 +287,8 @@ function ExperienceEntry({
 }
 
 interface ReviewExperienceSectionProps {
-	experience: Experience[];
-	onChange: (updated: Experience[]) => void;
+	experience: WorkEntry[];
+	onChange: (updated: WorkEntry[]) => void;
 }
 
 export function ReviewExperienceSection({
@@ -295,7 +297,7 @@ export function ReviewExperienceSection({
 }: ReviewExperienceSectionProps) {
 	const [newIndex, setNewIndex] = useState<number | null>(null);
 
-	const update = (index: number, updated: Experience) => {
+	const update = (index: number, updated: WorkEntry) => {
 		const next = [...experience];
 		next[index] = updated;
 		onChange(next);
@@ -306,10 +308,15 @@ export function ReviewExperienceSection({
 		if (index === newIndex) setNewIndex(null);
 	};
 	const add = () => {
-		const next = [
-			...experience,
-			{ company: '', role: '', duration: '', description: '' },
-		];
+		const blank: WorkEntry = {
+			company: null,
+			role: null,
+			start_date: { raw: null, normalized: null },
+			end_date: { raw: null, normalized: null },
+			is_current: false,
+			bullet_points: [],
+		};
+		const next = [...experience, blank];
 		onChange(next);
 		setNewIndex(next.length - 1);
 	};

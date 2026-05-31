@@ -20,6 +20,7 @@ import Roadmaps from '@/pages/dashboard/Roadmaps';
 import Skills from '@/pages/dashboard/Skills';
 import SkillsReview from '@/pages/dashboard/SkillsReview';
 import ErrorPage from '@/pages/ErrorPage';
+import PdfDebugPage from '@/pages/PdfDebugPage';
 
 let _sessionCache: { value: unknown; expiresAt: number } | null = null;
 
@@ -105,6 +106,10 @@ const publicRoutes: RouteObject[] = [
 	{
 		path: '/signup/success',
 		Component: SignupSuccessPage,
+	},
+	{
+		path: '/pdf-debug',
+		Component: PdfDebugPage,
 	},
 ];
 

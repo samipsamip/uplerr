@@ -1,4 +1,11 @@
-import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+	boolean,
+	integer,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+} from 'drizzle-orm/pg-core';
 
 import { user } from './auth-schema';
 
@@ -21,6 +28,8 @@ export const profileSchema = pgTable('user_profiles', {
 	updated_at: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
+	is_banned: boolean('is_banned').default(false).notNull(),
+	ban_reason: text('ban_reason'),
 	deleted_at: timestamp('deleted_at', { withTimezone: true }),
 });
 
