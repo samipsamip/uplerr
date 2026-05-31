@@ -13,6 +13,7 @@ export default defineConfig({
 				'src/schemas/**',
 				'src/utils/db.ts',
 				'src/lib/auth.ts',
+				'src/lib/logger.ts',
 				'src/utils/constants.ts',
 				'src/seed/**',
 			],
