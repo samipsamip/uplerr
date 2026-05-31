@@ -1,4 +1,8 @@
-import type { ResumeStructuredData } from '@uppler/types';
+import type {
+	CvStructuredData,
+	ResumeExtractionType,
+	SkillExtractionType,
+} from '@uppler/types';
 
 import {
 	lookupSkillCategory,
@@ -8,6 +12,15 @@ import {
 
 export type { SkillCategory };
 export { SKILL_CATEGORY_ORDER };
+
+export function flattenSkills(skills: SkillExtractionType): string[] {
+	return [
+		...skills.technical_skills,
+		...skills.tools_platforms,
+		...skills.spoken_languages,
+		...skills.soft_skills,
+	].map((s) => s.name);
+}
 
 export function categorizeSkills(
 	skills: string[],
@@ -30,7 +43,6 @@ export function categorizeSkills(
 		}
 	}
 
-	// Anything not matched by catalog lands in Other
 	const other = skills.filter((s) => !assigned.has(s));
 	if (other.length > 0) {
 		const existing = result.get('Other') ?? [];
@@ -40,27 +52,34 @@ export function categorizeSkills(
 	return Array.from(result.entries());
 }
 
-export function computeProfileStrength(data: ResumeStructuredData): number {
+export function computeProfileStrength(data: CvStructuredData): number {
 	let score = 0;
-	if (data.name) score += 10;
-	if (data.email) score += 10;
-	if (data.phone) score += 5;
-	if (data.location) score += 5;
-	if (data.links?.linkedin) score += 4;
-	if (data.links?.github) score += 4;
-	if (data.links?.portfolio) score += 2;
-	score += Math.min(data.skills.length * 1.2, 24);
-	if (data.experience.length > 0) score += 15;
-	if (data.experience.length > 1) score += 5;
-	data.experience.forEach((e) => {
-		if (e.description && e.description.length > 80) score += 3;
+	const { extraction, skills } = data;
+	const cd = extraction.contact_details;
+
+	if (extraction.full_name) score += 10;
+	if (cd.email) score += 10;
+	if (cd.phone) score += 5;
+	if (cd.location) score += 5;
+	if (cd.linkedin) score += 4;
+	if (cd.vcs_url) score += 4;
+	if (cd.portfolio) score += 2;
+
+	const allSkills = flattenSkills(skills);
+	score += Math.min(allSkills.length * 1.2, 24);
+
+	if (extraction.work_history.length > 0) score += 15;
+	if (extraction.work_history.length > 1) score += 5;
+	extraction.work_history.forEach((e) => {
+		if (e.bullet_points.length >= 2) score += 3;
 	});
-	if (data.education.length > 0) score += 7;
+
+	if (extraction.education.length > 0) score += 7;
 	return Math.min(Math.round(score), 100);
 }
 
-export function detectProfileType(skills: string[]): string {
-	const lower = skills.map((s) => s.toLowerCase());
+export function detectProfileType(skills: SkillExtractionType): string {
+	const lower = flattenSkills(skills).map((s) => s.toLowerCase());
 	const backend = lower.filter((s) =>
 		[
 			'node',
@@ -119,64 +138,31 @@ export function strengthLabel(
 }
 
 export function estimateYearsOfExperience(
-	experience: ResumeStructuredData['experience'],
+	workHistory: ResumeExtractionType['work_history'],
 ): number | null {
 	let totalMonths = 0;
 	let parsed = 0;
 
-	for (const e of experience) {
-		if (!e.duration) continue;
-		// Handles "YYYY-MM - YYYY-MM", "YYYY-MM - Present", "Jan 2020 – Mar 2024" etc.
-		const parts = e.duration.split(/\s+[-–—]\s+|\s+to\s+/i);
-		if (parts.length < 2) continue;
+	for (const e of workHistory) {
+		const startNorm = e.start_date.normalized;
+		if (!startNorm) continue;
 
-		const start = parseApproxDate(parts[0].trim());
-		const end = parts[1].trim().toLowerCase().includes('present')
+		const endDate = e.is_current
 			? new Date()
-			: parseApproxDate(parts[1].trim());
+			: e.end_date.normalized
+				? new Date(e.end_date.normalized)
+				: null;
+		if (!endDate) continue;
 
-		if (start && end && end >= start) {
+		const startDate = new Date(startNorm);
+		if (endDate >= startDate) {
 			totalMonths +=
-				(end.getFullYear() - start.getFullYear()) * 12 +
-				(end.getMonth() - start.getMonth());
+				(endDate.getFullYear() - startDate.getFullYear()) * 12 +
+				(endDate.getMonth() - startDate.getMonth());
 			parsed++;
 		}
 	}
 
 	if (parsed === 0) return null;
 	return Math.max(1, Math.round(totalMonths / 12));
-}
-
-function parseApproxDate(s: string): Date | null {
-	// "2022-01" or "2022"
-	const isoMatch = s.match(/^(\d{4})(?:-(\d{2}))?$/);
-	if (isoMatch) {
-		return new Date(
-			parseInt(isoMatch[1]),
-			isoMatch[2] ? parseInt(isoMatch[2]) - 1 : 0,
-		);
-	}
-	// "Jan 2022" / "January 2022"
-	const monthYear = s.match(
-		/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+(\d{4})$/i,
-	);
-	if (monthYear) {
-		const monthMap: Record<string, number> = {
-			jan: 0,
-			feb: 1,
-			mar: 2,
-			apr: 3,
-			may: 4,
-			jun: 5,
-			jul: 6,
-			aug: 7,
-			sep: 8,
-			oct: 9,
-			nov: 10,
-			dec: 11,
-		};
-		const m = monthMap[monthYear[1].slice(0, 3).toLowerCase()];
-		return new Date(parseInt(monthYear[2]), m ?? 0);
-	}
-	return null;
 }

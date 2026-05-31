@@ -1,4 +1,4 @@
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData } from '@uppler/types';
 
 import { api } from './client';
 
@@ -8,7 +8,7 @@ export type UserProfile = {
 		hasStructuredData: boolean;
 		uploadedAt: string;
 		is_verified: boolean;
-		structuredData: ResumeStructuredData | null;
+		structuredData: CvStructuredData | null;
 	} | null;
 	cv_generations_used: number;
 	full_name: string;
@@ -25,7 +25,7 @@ export const postCreateProfileFromResume = async (resumePDF: FormData) => {
 		.post('api/profile/upload-resume', { body: resumePDF, timeout: 120000 })
 		.json<{
 			message: string;
-			structuredData: ResumeStructuredData;
+			structuredData: CvStructuredData;
 			skillMatchMeta: SkillMatchMeta;
 		}>();
 };
@@ -34,9 +34,7 @@ export const getUserProfile = async () => {
 	return api.get('api/profile').json<UserProfile>();
 };
 
-export const patchVerifyResume = async (
-	structuredData?: ResumeStructuredData,
-) => {
+export const patchVerifyResume = async (structuredData?: CvStructuredData) => {
 	return api
 		.patch('api/profile/resume', { json: { structuredData } })
 		.json<{ message: string }>();

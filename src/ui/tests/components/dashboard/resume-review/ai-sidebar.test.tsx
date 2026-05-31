@@ -1,61 +1,114 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
+import type { CvStructuredData } from '@uppler/types';
 
 import { AiSidebar } from '@/components/dashboard/resume-review/ai-sidebar';
 
 import { renderWithProviders } from '../../../helpers/render';
 
-// Designed to score >= 85 (Excellent): all fields, many skills, 2 rich experience entries
-const baseData = {
-	name: 'Alice',
-	email: 'alice@example.com',
-	phone: '0400000000',
-	location: 'Sydney, AU',
-	links: {
-		linkedin: 'https://li.com',
-		github: 'https://gh.com',
-		portfolio: 'https://alice.dev',
+const baseData: CvStructuredData = {
+	extraction: {
+		full_name: 'Alice',
+		contact_details: {
+			email: 'alice@example.com',
+			phone: '0400000000',
+			location: 'Sydney, AU',
+			linkedin: 'https://li.com',
+			vcs_platform: 'GitHub',
+			vcs_url: 'https://gh.com',
+			portfolio: 'https://alice.dev',
+		},
+		professional_summary: null,
+		work_history: [
+			{
+				role: 'Senior Engineer',
+				company: 'Acme',
+				start_date: { raw: 'Jan 2020', normalized: '2020-01-01' },
+				end_date: { raw: null, normalized: null },
+				is_current: true,
+				bullet_points: [
+					'Built React and TypeScript applications with Docker deployments on AWS.',
+					'Led a team of 5 engineers and reduced system latency by 40% through caching strategies.',
+				],
+			},
+			{
+				role: 'Software Developer',
+				company: 'Startup',
+				start_date: { raw: 'Jun 2018', normalized: '2018-06-01' },
+				end_date: { raw: 'Dec 2019', normalized: '2019-12-01' },
+				is_current: false,
+				bullet_points: [
+					'Developed Node.js microservices and PostgreSQL database schemas.',
+					'Implemented CI/CD pipelines using GitHub Actions.',
+				],
+			},
+		],
+		education: [
+			{
+				institution: 'Uni',
+				degree: "Bachelor's of Computer Science",
+				field_of_study: 'Computer Science',
+				start_date: { raw: null, normalized: null },
+				end_date: { raw: '2019', normalized: null },
+			},
+		],
+		certifications: [],
+		notable_achievements: [],
 	},
-	skills: [
-		'React',
-		'TypeScript',
-		'Node.js',
-		'Docker',
-		'PostgreSQL',
-		'Git',
-		'AWS',
-		'Redis',
-		'GraphQL',
-		'Kubernetes',
-		'Terraform',
-		'Python',
-		'Jest',
-		'Vite',
-	],
-	experience: [
-		{
-			role: 'Senior Engineer',
-			company: 'Acme',
-			duration: 'Jan 2020 – Present',
-			description:
-				'Built React and TypeScript applications with Docker deployments on AWS. Led a team of 5 engineers and reduced system latency by 40% through caching strategies.',
+	skills: {
+		technical_skills: [
+			{ name: 'React', source: 'skills_section' },
+			{ name: 'TypeScript', source: 'skills_section' },
+			{ name: 'Node.js', source: 'skills_section' },
+			{ name: 'Docker', source: 'skills_section' },
+			{ name: 'PostgreSQL', source: 'skills_section' },
+			{ name: 'AWS', source: 'skills_section' },
+			{ name: 'Kubernetes', source: 'skills_section' },
+			{ name: 'Terraform', source: 'skills_section' },
+			{ name: 'Python', source: 'skills_section' },
+		],
+		tools_platforms: [
+			{ name: 'Git', source: 'skills_section' },
+			{ name: 'Redis', source: 'skills_section' },
+			{ name: 'GraphQL', source: 'skills_section' },
+			{ name: 'Jest', source: 'skills_section' },
+			{ name: 'Vite', source: 'skills_section' },
+		],
+		spoken_languages: [],
+		soft_skills: [],
+	},
+	projects: {
+		projects: [],
+	},
+};
+
+const emptyData: CvStructuredData = {
+	extraction: {
+		full_name: null,
+		contact_details: {
+			email: null,
+			phone: null,
+			location: null,
+			linkedin: null,
+			vcs_platform: null,
+			vcs_url: null,
+			portfolio: null,
 		},
-		{
-			role: 'Software Developer',
-			company: 'Startup',
-			duration: 'Jun 2018 – Dec 2019',
-			description:
-				'Developed Node.js microservices and PostgreSQL database schemas. Implemented CI/CD pipelines using GitHub Actions reducing deployment time significantly.',
-		},
-	],
-	education: [
-		{
-			degree: "Bachelor's of Computer Science",
-			institution: 'Uni',
-			year: '2019',
-		},
-	],
-	projects: [{ name: 'My App', description: 'Cool', technologies: ['React'] }],
+		professional_summary: null,
+		work_history: [],
+		education: [],
+		certifications: [],
+		notable_achievements: [],
+	},
+	skills: {
+		technical_skills: [],
+		tools_platforms: [],
+		spoken_languages: [],
+		soft_skills: [],
+	},
+	projects: {
+		projects: [],
+	},
 };
 
 describe('AiSidebar — profile strength', () => {
@@ -75,17 +128,7 @@ describe('AiSidebar — profile strength', () => {
 	});
 
 	it('shows Building for empty data', () => {
-		renderWithProviders(
-			<AiSidebar
-				data={{
-					name: '',
-					skills: [],
-					experience: [],
-					education: [],
-					projects: [],
-				}}
-			/>,
-		);
+		renderWithProviders(<AiSidebar data={emptyData} />);
 		expect(screen.getByText('Building')).toBeInTheDocument();
 	});
 
@@ -96,7 +139,6 @@ describe('AiSidebar — profile strength', () => {
 		expect(screen.getByText('Online presence')).toBeInTheDocument();
 		expect(screen.getByText('Work experience')).toBeInTheDocument();
 		expect(screen.getByText('Education')).toBeInTheDocument();
-		expect(screen.getByText('Projects')).toBeInTheDocument();
 	});
 });
 
@@ -113,7 +155,6 @@ describe('AiSidebar — AI Analysis', () => {
 
 	it('shows estimated years of experience when parseable', () => {
 		renderWithProviders(<AiSidebar data={baseData} />);
-		// "~N years" is in a <span> and "of work experience" is adjacent text
 		expect(screen.getByText(/of work experience/i)).toBeInTheDocument();
 	});
 
@@ -122,7 +163,19 @@ describe('AiSidebar — AI Analysis', () => {
 			<AiSidebar
 				data={{
 					...baseData,
-					experience: [{ role: 'Dev', company: 'A' }],
+					extraction: {
+						...baseData.extraction,
+						work_history: [
+							{
+								role: 'Dev',
+								company: 'A',
+								start_date: { raw: null, normalized: null },
+								end_date: { raw: null, normalized: null },
+								is_current: false,
+								bullet_points: [],
+							},
+						],
+					},
 				}}
 			/>,
 		);
@@ -173,8 +226,15 @@ describe('AiSidebar — Suggestions', () => {
 			<AiSidebar
 				data={{
 					...baseData,
-					links: {},
-					projects: [],
+					extraction: {
+						...baseData.extraction,
+						contact_details: {
+							...baseData.extraction.contact_details,
+							linkedin: null,
+							vcs_url: null,
+							portfolio: null,
+						},
+					},
 				}}
 			/>,
 		);
@@ -182,20 +242,26 @@ describe('AiSidebar — Suggestions', () => {
 	});
 
 	it('does not show Suggestions section for a fully complete profile', () => {
-		// baseData has all links, 14+ skills, rich experience, education, projects → no tips
 		renderWithProviders(<AiSidebar data={baseData} />);
 		expect(screen.queryByText(/^suggestions$/i)).not.toBeInTheDocument();
 	});
 
 	it('shows suggested skills when the profile type has known gaps', () => {
-		// 4 frontend skills → "Frontend-focused profile detected" → suggests Git, Vite etc.
-		const frontendData = {
+		const frontendData: CvStructuredData = {
 			...baseData,
-			skills: ['React', 'Vue', 'Angular', 'TypeScript'],
-			links: { linkedin: 'l', github: 'g', portfolio: 'p' },
+			skills: {
+				technical_skills: [
+					{ name: 'React', source: 'skills_section' },
+					{ name: 'Vue', source: 'skills_section' },
+					{ name: 'Angular', source: 'skills_section' },
+					{ name: 'TypeScript', source: 'skills_section' },
+				],
+				tools_platforms: [],
+				spoken_languages: [],
+				soft_skills: [],
+			},
 		};
 		renderWithProviders(<AiSidebar data={frontendData} />);
-		// "Consider adding: X, Y" — text may be split by span, check partial
 		expect(screen.getByText(/consider adding/i)).toBeInTheDocument();
 	});
 });
@@ -207,14 +273,15 @@ describe('AiSidebar — Skill Distribution', () => {
 	});
 
 	it('does not render Skill Distribution when there are no skills', () => {
-		renderWithProviders(<AiSidebar data={{ ...baseData, skills: [] }} />);
+		renderWithProviders(<AiSidebar data={emptyData} />);
 		expect(screen.queryByText(/skill distribution/i)).not.toBeInTheDocument();
 	});
 
 	it('shows the total skill count', () => {
 		renderWithProviders(<AiSidebar data={baseData} />);
-		expect(
-			screen.getByText(`${baseData.skills.length} total`),
-		).toBeInTheDocument();
+		const total =
+			baseData.skills.technical_skills.length +
+			baseData.skills.tools_platforms.length;
+		expect(screen.getByText(`${total} total`)).toBeInTheDocument();
 	});
 });

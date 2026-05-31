@@ -8,12 +8,12 @@ import {
 	Trash2,
 	X,
 } from 'lucide-react';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { ResumeExtractionType } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type Education = ResumeStructuredData['education'][number];
+type Education = ResumeExtractionType['education'][number];
 
 function EducationEntry({
 	entry,
@@ -28,19 +28,31 @@ function EducationEntry({
 }) {
 	const [editing, setEditing] = useState(autoEdit ?? false);
 	const [draft, setDraft] = useState(entry);
+	const [error, setError] = useState<string | null>(null);
 
 	const commit = () => {
+		if (!draft.degree?.trim()) {
+			setError('Degree / qualification is required.');
+			return;
+		}
+		if (!draft.institution?.trim()) {
+			setError('Institution is required.');
+			return;
+		}
+		setError(null);
 		onUpdate(draft);
 		setEditing(false);
 	};
 	const discard = () => {
 		setDraft(entry);
+		setError(null);
 		setEditing(false);
 	};
 
 	if (!editing) {
 		const isDiploma = /diploma|certificate/i.test(entry.degree ?? '');
 		const IconComponent = isDiploma ? BookOpen : GraduationCap;
+		const endYear = entry.end_date.raw ?? null;
 
 		return (
 			<div className="group/edu flex items-start gap-3">
@@ -53,8 +65,14 @@ function EducationEntry({
 					</p>
 					<p className="text-muted-foreground mt-0.5 text-xs">
 						{entry.institution}
-						{entry.year && (
-							<span className="text-muted-foreground/60"> · {entry.year}</span>
+						{entry.field_of_study && (
+							<span className="text-muted-foreground/60">
+								{' '}
+								· {entry.field_of_study}
+							</span>
+						)}
+						{endYear && (
+							<span className="text-muted-foreground/60"> · {endYear}</span>
 						)}
 					</p>
 				</div>
@@ -88,33 +106,68 @@ function EducationEntry({
 						Degree / Qualification
 					</label>
 					<Input
-						value={draft.degree}
-						onChange={(e) => setDraft({ ...draft, degree: e.target.value })}
+						value={draft.degree ?? ''}
+						onChange={(e) =>
+							setDraft({ ...draft, degree: e.target.value || null })
+						}
 						className="h-8 text-sm"
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
 					<label className="text-muted-foreground text-xs">Institution</label>
 					<Input
-						value={draft.institution}
+						value={draft.institution ?? ''}
 						onChange={(e) =>
-							setDraft({ ...draft, institution: e.target.value })
+							setDraft({ ...draft, institution: e.target.value || null })
 						}
 						className="h-8 text-sm"
 					/>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-muted-foreground text-xs">Year</label>
+					<label className="text-muted-foreground text-xs">
+						Field of study
+					</label>
 					<Input
-						value={draft.year ?? ''}
+						value={draft.field_of_study ?? ''}
 						onChange={(e) =>
-							setDraft({ ...draft, year: e.target.value || undefined })
+							setDraft({ ...draft, field_of_study: e.target.value || null })
 						}
 						className="h-8 text-sm"
-						placeholder="e.g. 2020"
+					/>
+				</div>
+				<div className="flex flex-col gap-1">
+					<label className="text-muted-foreground text-xs">Start</label>
+					<Input
+						value={draft.start_date.raw ?? ''}
+						onChange={(e) =>
+							setDraft({
+								...draft,
+								start_date: {
+									...draft.start_date,
+									raw: e.target.value || null,
+								},
+							})
+						}
+						className="h-8 text-sm"
+						placeholder="e.g. Sep 2016"
+					/>
+				</div>
+				<div className="flex flex-col gap-1">
+					<label className="text-muted-foreground text-xs">End</label>
+					<Input
+						value={draft.end_date.raw ?? ''}
+						onChange={(e) =>
+							setDraft({
+								...draft,
+								end_date: { ...draft.end_date, raw: e.target.value || null },
+							})
+						}
+						className="h-8 text-sm"
+						placeholder="e.g. Jun 2020"
 					/>
 				</div>
 			</div>
+			{error && <p className="text-destructive text-xs">{error}</p>}
 			<div className="flex items-center justify-end gap-2">
 				<Button variant="ghost" size="sm" onClick={discard}>
 					<X className="mr-1 size-3" />
@@ -151,7 +204,14 @@ export function ReviewEducationSection({
 		if (index === newIndex) setNewIndex(null);
 	};
 	const add = () => {
-		const next = [...education, { institution: '', degree: '', year: '' }];
+		const blank: Education = {
+			institution: null,
+			degree: null,
+			field_of_study: null,
+			start_date: { raw: null, normalized: null },
+			end_date: { raw: null, normalized: null },
+		};
+		const next = [...education, blank];
 		onChange(next);
 		setNewIndex(next.length - 1);
 	};

@@ -7,13 +7,14 @@ import { ReviewProfileSection } from '@/components/dashboard/resume-review/revie
 import { renderWithProviders } from '../../../helpers/render';
 
 const baseData = {
-	name: 'Alice Johnson',
-	email: 'alice@example.com',
-	phone: '0400000000',
-	location: 'Sydney, AU',
-	links: {
+	full_name: 'Alice Johnson',
+	contact_details: {
+		email: 'alice@example.com',
+		phone: '0400000000',
+		location: 'Sydney, AU',
 		linkedin: 'https://linkedin.com/in/alice',
-		github: 'https://github.com/alice',
+		vcs_platform: 'GitHub' as const,
+		vcs_url: 'https://github.com/alice',
 		portfolio: 'https://alice.dev',
 	},
 };
@@ -44,7 +45,7 @@ describe('ReviewProfileSection — display', () => {
 		).toBeInTheDocument();
 	});
 
-	it('renders the GitHub URL', () => {
+	it('renders the VCS URL', () => {
 		renderWithProviders(
 			<ReviewProfileSection data={baseData} onChange={vi.fn()} />,
 		);
@@ -54,7 +55,10 @@ describe('ReviewProfileSection — display', () => {
 	it('shows placeholder text for missing email', () => {
 		renderWithProviders(
 			<ReviewProfileSection
-				data={{ ...baseData, email: undefined }}
+				data={{
+					...baseData,
+					contact_details: { ...baseData.contact_details, email: null },
+				}}
 				onChange={vi.fn()}
 			/>,
 		);
@@ -66,7 +70,7 @@ describe('ReviewProfileSection — display', () => {
 			<ReviewProfileSection
 				data={{
 					...baseData,
-					links: { ...baseData.links, linkedin: undefined },
+					contact_details: { ...baseData.contact_details, linkedin: null },
 				}}
 				onChange={vi.fn()}
 			/>,
@@ -100,7 +104,7 @@ describe('ReviewProfileSection — EditableField interactions', () => {
 		await user.type(input, 'Bob{Enter}');
 
 		expect(onChange).toHaveBeenCalledOnce();
-		expect(onChange.mock.calls[0][0]).toMatchObject({ name: 'Bob' });
+		expect(onChange.mock.calls[0][0]).toMatchObject({ full_name: 'Bob' });
 	});
 
 	it('reverts to original value on Escape', async () => {

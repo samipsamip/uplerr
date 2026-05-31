@@ -1,34 +1,26 @@
-/**
- * Resume Extraction FSM
- *
- * Processes uploaded resumes through validation, duplicate detection,
- * LLM-based parsing, cloud upload, and CV persistence. PDFs are validated,
- * hashed, and parsed before checking for existing active CVs with the same hash.
- *
- * Valid resumes are enriched with extracted links, uploaded to R2, and stored
- * as structured cv_profiles data while replacing any previously active CV.
- * The FSM also performs lightweight skill prematching and exposes match metadata
- * in the final API response. Validation, extraction, duplicate, and non-resume
- * failures terminate in dedicated error states.
- */
-import { and, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, or, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import {
-	type ResumeStructuredData,
-	resumeStructuredDataSchema,
+import type {
+	CvStructuredData,
+	ProjectExtractionType,
+	ResumeExtractionType,
+	SkillExtractionType,
 } from '@uppler/types';
 
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
+import { profileSchema } from '../../schemas/profiles.schema';
+import { resumeModerationSchema } from '../../schemas/resume_moderations.schema';
 import { skillAliasSchema } from '../../schemas/skill_aliases.schema';
 import { skillsSchema } from '../../schemas/skills.schema';
 import db from '../../utils/db';
 import {
 	ResumeDuplicateError,
 	ResumeExtractionError,
+	ResumeModerationError,
 	ResumeValidationError,
 } from '../../utils/error-utils';
 import { notDeleted } from '../../utils/helpers';
-import { llmService } from '../lllm';
+import { braintrust } from '../lllm/braintrust';
 import pdfParser from '../pdf-parser';
 import { deleteResumeFromBucket, uploadResumeToBucket } from '../upload-utils';
 
@@ -41,8 +33,13 @@ export const ResumeTransitionState = {
 	RESUME_DUPLICATE: 'resume_duplicate',
 	RESUME_VALIDATION_ERROR: 'resume_validation_error',
 	RESUME_EXTRACTION_ERROR: 'resume_extraction_error',
+	MODERATION_CHECK: 'moderation_check',
+	MALICIOUS_CONTENT_DETECTED: 'malicious_content_detected',
+	VALIDATION_CHECK: 'validation_check',
 	RESUME_PARSE_FAILED: 'resume_parse_failed',
-	LLM_EXTRACTION: 'llm_extraction',
+	RESUME_EXTRACTION: 'resume_extraction',
+	SKILLS_EXTRACTION: 'skills_extraction',
+	PROJECTS_EXTRACTION: 'projects_extraction',
 	UPLOAD_TO_CLOUD: 'upload_to_cloud',
 	SKILL_PREMATCH: 'skill_prematch',
 	DONE: 'done',
@@ -69,38 +66,19 @@ type MachineDefinition = { initialState: ResumeState } & Partial<
 
 export type SkillMatchMeta = { matched: number; total: number };
 
+const MALICIOUS_UPLOAD_BAN_THRESHOLD = 3;
+
 type ResumeExtractionContext = {
 	buffer: Uint8Array | null;
 	hash: string | null;
 	rawText: string | null;
 	pdfLinks: string[];
-	llmResult: Awaited<
-		ReturnType<typeof llmService.extractDetailsFromResume>
-	> | null;
+	extractionResult: ResumeExtractionType | null;
+	skillsResult: SkillExtractionType | null;
+	projectsResult: ProjectExtractionType | null;
 	existingCv: { id: string; resume_key: string | null } | null;
 	skillMatchMeta: SkillMatchMeta;
 };
-
-function mergePdfLinks(
-	llmLinks: ResumeStructuredData['links'],
-	pdfLinks: string[],
-): ResumeStructuredData['links'] {
-	const merged: ResumeStructuredData['links'] = { ...llmLinks };
-	for (const link of pdfLinks) {
-		if (!merged?.github && /github\.com\//i.test(link)) {
-			merged!.github = link;
-		} else if (!merged?.linkedin && /linkedin\.com\//i.test(link)) {
-			merged!.linkedin = link;
-		} else if (
-			!merged?.portfolio &&
-			/^https?:\/\//i.test(link) &&
-			!/github\.com|linkedin\.com/i.test(link)
-		) {
-			merged!.portfolio = link;
-		}
-	}
-	return merged;
-}
 
 const createMachine = (stateMachineDefinition: MachineDefinition) => {
 	const machine = {
@@ -145,7 +123,9 @@ export const createResumeExtractionFSM = ({
 		hash: null,
 		rawText: null,
 		pdfLinks: [],
-		llmResult: null,
+		extractionResult: null,
+		skillsResult: null,
+		projectsResult: null,
 		existingCv: null,
 		skillMatchMeta: { matched: 0, total: 0 },
 	};
@@ -161,11 +141,7 @@ export const createResumeExtractionFSM = ({
 		[ResumeTransitionState.RECEIVED]: {
 			transition: {
 				targetState: ResumeTransitionState.PARSE_RESUME,
-				action: () => {
-					console.log(
-						'[ResumeExtractionFSM] Received resume, moving to parsing step',
-					);
-				},
+				action: () => {},
 			},
 		},
 		[ResumeTransitionState.PARSE_RESUME]: {
@@ -193,16 +169,12 @@ export const createResumeExtractionFSM = ({
 		[ResumeTransitionState.RESUME_PARSE_SUCCESS]: {
 			transition: {
 				targetState: ResumeTransitionState.DUPLICATE_CHECK,
-				action: () => {
-					console.log(
-						'[ResumeExtractionFSM] Resume parsed successfully, checking for duplicates',
-					);
-				},
+				action: () => {},
 			},
 		},
 		[ResumeTransitionState.DUPLICATE_CHECK]: {
 			transition: {
-				targetState: ResumeTransitionState.LLM_EXTRACTION,
+				targetState: ResumeTransitionState.MODERATION_CHECK,
 				errorTarget: (error: Error | string) => {
 					if (error instanceof ResumeDuplicateError)
 						return ResumeTransitionState.RESUME_DUPLICATE;
@@ -235,17 +207,60 @@ export const createResumeExtractionFSM = ({
 				},
 			},
 		},
-		[ResumeTransitionState.LLM_EXTRACTION]: {
+		[ResumeTransitionState.MODERATION_CHECK]: {
 			transition: {
-				targetState: ResumeTransitionState.UPLOAD_TO_CLOUD,
+				targetState: ResumeTransitionState.VALIDATION_CHECK,
+				errorTargetState: ResumeTransitionState.MALICIOUS_CONTENT_DETECTED,
+				action: async () => {
+					if (!ctx.rawText) throw new Error('rawText unavailable.');
+
+					const result = await braintrust.checkForModeration(
+						ctx.rawText,
+						profileId,
+					);
+
+					if (result.is_malicious) {
+						await db.insert(resumeModerationSchema).values({
+							profile_id: profileId,
+							raw_text: ctx.rawText,
+							reason: result.reason,
+						});
+
+						const [{ value: moderationCount }] = await db
+							.select({ value: count() })
+							.from(resumeModerationSchema)
+							.where(eq(resumeModerationSchema.profile_id, profileId));
+
+						if (moderationCount >= MALICIOUS_UPLOAD_BAN_THRESHOLD) {
+							await db
+								.update(profileSchema)
+								.set({
+									is_banned: true,
+									ban_reason:
+										'Your account has been suspended due to repeated upload of malicious content.',
+									updated_at: new Date(),
+								})
+								.where(eq(profileSchema.id, profileId));
+						}
+
+						throw new ResumeModerationError(result.reason);
+					}
+				},
+			},
+		},
+		[ResumeTransitionState.VALIDATION_CHECK]: {
+			transition: {
+				targetState: ResumeTransitionState.RESUME_EXTRACTION,
 				errorTargetState: ResumeTransitionState.RESUME_PARSE_FAILED,
 				action: async () => {
-					if (!ctx.rawText)
-						throw new Error('rawText is not available for LLM extraction.');
-					ctx.llmResult = await llmService.extractDetailsFromResume(
+					if (!ctx.rawText) throw new Error('rawText unavailable.');
+
+					const result = await braintrust.performValidationCheckOnResume(
 						ctx.rawText,
+						profileId,
 					);
-					if (!ctx.llmResult.isValid) {
+
+					if (!result.isValid) {
 						throw new ResumeExtractionError(
 							'The uploaded document does not appear to be a valid resume.',
 						);
@@ -253,19 +268,60 @@ export const createResumeExtractionFSM = ({
 				},
 			},
 		},
+		[ResumeTransitionState.RESUME_EXTRACTION]: {
+			transition: {
+				targetState: ResumeTransitionState.SKILLS_EXTRACTION,
+				errorTargetState: ResumeTransitionState.RESUME_PARSE_FAILED,
+				action: async () => {
+					if (!ctx.rawText) throw new Error('rawText unavailable.');
+					ctx.extractionResult = await braintrust.performResumeExtraction(
+						ctx.rawText,
+						ctx.pdfLinks,
+						profileId,
+					);
+				},
+			},
+		},
+		[ResumeTransitionState.SKILLS_EXTRACTION]: {
+			transition: {
+				targetState: ResumeTransitionState.PROJECTS_EXTRACTION,
+				errorTargetState: ResumeTransitionState.RESUME_PARSE_FAILED,
+				action: async () => {
+					if (!ctx.rawText) throw new Error('rawText unavailable.');
+					ctx.skillsResult = await braintrust.performSkillsExtraction(
+						ctx.rawText,
+						profileId,
+					);
+				},
+			},
+		},
+		[ResumeTransitionState.PROJECTS_EXTRACTION]: {
+			transition: {
+				targetState: ResumeTransitionState.UPLOAD_TO_CLOUD,
+				errorTargetState: ResumeTransitionState.RESUME_PARSE_FAILED,
+				action: async () => {
+					if (!ctx.rawText) throw new Error('rawText unavailable.');
+					ctx.projectsResult = await braintrust.performProjectsExtraction(
+						ctx.rawText,
+						ctx.pdfLinks,
+						profileId,
+					);
+				},
+			},
+		},
 		[ResumeTransitionState.UPLOAD_TO_CLOUD]: {
 			transition: {
 				targetState: ResumeTransitionState.SKILL_PREMATCH,
 				action: async () => {
-					if (!ctx.llmResult)
-						throw new Error('llmResult is not available for upload.');
-					const resumeKey = await uploadResumeToBucket(file, userId);
+					if (!ctx.extractionResult || !ctx.skillsResult || !ctx.projectsResult)
+						throw new Error('Extraction results unavailable for upload.');
 
-					const mergedLinks = mergePdfLinks(ctx.llmResult.links, ctx.pdfLinks);
-					const extractedResumeDetails = resumeStructuredDataSchema.parse({
-						...ctx.llmResult,
-						links: mergedLinks,
-					});
+					const resumeKey = await uploadResumeToBucket(file, userId);
+					const structuredData: CvStructuredData = {
+						extraction: ctx.extractionResult,
+						skills: ctx.skillsResult,
+						projects: ctx.projectsResult,
+					};
 
 					await db.transaction(async (tx) => {
 						if (ctx.existingCv) {
@@ -280,7 +336,7 @@ export const createResumeExtractionFSM = ({
 							resume_key: resumeKey,
 							resume_hash: ctx.hash,
 							raw_text: ctx.rawText,
-							structured_data: extractedResumeDetails,
+							structured_data: structuredData,
 							is_verified: false,
 							is_active: true,
 						});
@@ -296,11 +352,14 @@ export const createResumeExtractionFSM = ({
 			transition: {
 				targetState: ResumeTransitionState.DONE,
 				action: async () => {
-					const skills = ctx.llmResult?.skills ?? [];
+					const skills = [
+						...(ctx.skillsResult?.technical_skills ?? []),
+						...(ctx.skillsResult?.tools_platforms ?? []),
+					];
 					if (skills.length === 0) return;
 
 					try {
-						const lowerNames = skills.map((s) => s.toLowerCase().trim());
+						const lowerNames = skills.map((s) => s.name.toLowerCase().trim());
 
 						const [aliasMatches, directMatches] = await Promise.all([
 							db
@@ -352,12 +411,14 @@ export const createResumeExtractionFSM = ({
 		get error() {
 			return machine.error;
 		},
-		get structuredData(): ResumeStructuredData | null {
-			if (!ctx.llmResult) return null;
-			return resumeStructuredDataSchema.parse({
-				...ctx.llmResult,
-				links: mergePdfLinks(ctx.llmResult.links, ctx.pdfLinks),
-			});
+		get structuredData(): CvStructuredData | null {
+			if (!ctx.extractionResult || !ctx.skillsResult || !ctx.projectsResult)
+				return null;
+			return {
+				extraction: ctx.extractionResult,
+				skills: ctx.skillsResult,
+				projects: ctx.projectsResult,
+			};
 		},
 		get skillMatchMeta(): SkillMatchMeta {
 			return ctx.skillMatchMeta;

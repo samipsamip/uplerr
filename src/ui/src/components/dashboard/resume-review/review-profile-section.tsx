@@ -1,14 +1,23 @@
 import { useState } from 'react';
 import { Check, Globe, Mail, MapPin, Pencil, Phone, X } from 'lucide-react';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { ResumeExtractionType } from '@uppler/types';
 
 import { BrandIcon } from '@/components/dashboard/brand-icon';
+import type { BrandIconName } from '@/components/dashboard/brand-icon/brand-icons.types';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+const VCS_ICON: Record<string, BrandIconName> = {
+	GitHub: 'GitHub',
+	GitLab: 'GitLab',
+	Bitbucket: 'BitBucket',
+	Azure: 'Azure',
+	AWS: 'AWS',
+};
+
 type ProfileFields = Pick<
-	ResumeStructuredData,
-	'name' | 'email' | 'phone' | 'location' | 'links'
+	ResumeExtractionType,
+	'full_name' | 'contact_details'
 >;
 
 interface ReviewProfileSectionProps {
@@ -24,7 +33,7 @@ function EditableField({
 	placeholder,
 }: {
 	label: string;
-	value: string | undefined;
+	value: string | null | undefined;
 	onSave: (v: string) => void;
 	className?: string;
 	placeholder?: string;
@@ -95,28 +104,31 @@ export function ReviewProfileSection({
 	data,
 	onChange,
 }: ReviewProfileSectionProps) {
-	const set = <K extends keyof ProfileFields>(
-		key: K,
-		value: ProfileFields[K],
-	) => onChange({ ...data, [key]: value });
-
-	const setLink = (
-		key: keyof NonNullable<ProfileFields['links']>,
+	const setContact = (
+		key: keyof ResumeExtractionType['contact_details'],
 		value: string,
 	) =>
-		onChange({ ...data, links: { ...data.links, [key]: value || undefined } });
+		onChange({
+			...data,
+			contact_details: {
+				...data.contact_details,
+				[key]: value || null,
+			},
+		});
+
+	const cd = data.contact_details;
 
 	return (
 		<div className="flex gap-4">
 			<div className="bg-accent/[0.1] text-accent flex size-14 shrink-0 items-center justify-center rounded-2xl text-xl font-semibold">
-				{data.name?.[0]?.toUpperCase() ?? '?'}
+				{data.full_name?.[0]?.toUpperCase() ?? '?'}
 			</div>
 
 			<div className="flex min-w-0 flex-1 flex-col gap-2">
 				<EditableField
 					label="Full name"
-					value={data.name}
-					onSave={(v) => set('name', v)}
+					value={data.full_name}
+					onSave={(v) => onChange({ ...data, full_name: v || null })}
 					className="text-xl font-semibold"
 				/>
 
@@ -125,8 +137,8 @@ export function ReviewProfileSection({
 						<Mail className="text-muted-foreground/40 size-3 shrink-0" />
 						<EditableField
 							label="Email"
-							value={data.email}
-							onSave={(v) => set('email', v || undefined)}
+							value={cd.email}
+							onSave={(v) => setContact('email', v)}
 							className="text-muted-foreground text-sm"
 						/>
 					</div>
@@ -134,8 +146,8 @@ export function ReviewProfileSection({
 						<Phone className="text-muted-foreground/40 size-3 shrink-0" />
 						<EditableField
 							label="Phone"
-							value={data.phone}
-							onSave={(v) => set('phone', v || undefined)}
+							value={cd.phone}
+							onSave={(v) => setContact('phone', v)}
 							className="text-muted-foreground text-sm"
 						/>
 					</div>
@@ -143,8 +155,8 @@ export function ReviewProfileSection({
 						<MapPin className="text-muted-foreground/40 size-3 shrink-0" />
 						<EditableField
 							label="Location"
-							value={data.location}
-							onSave={(v) => set('location', v || undefined)}
+							value={cd.location}
+							onSave={(v) => setContact('location', v)}
 							className="text-muted-foreground text-sm"
 						/>
 					</div>
@@ -159,23 +171,23 @@ export function ReviewProfileSection({
 						/>
 						<EditableField
 							label="LinkedIn URL"
-							value={data.links?.linkedin}
+							value={cd.linkedin}
 							placeholder="Add LinkedIn"
-							onSave={(v) => setLink('linkedin', v)}
+							onSave={(v) => setContact('linkedin', v)}
 							className="text-muted-foreground text-xs"
 						/>
 					</div>
 					<div className="flex items-center gap-1.5">
 						<BrandIcon
-							name="GitHub"
+							name={VCS_ICON[cd.vcs_platform ?? ''] ?? 'GitHub'}
 							size={14}
 							className="shrink-0 opacity-60"
 						/>
 						<EditableField
-							label="GitHub URL"
-							value={data.links?.github}
-							placeholder="Add GitHub"
-							onSave={(v) => setLink('github', v)}
+							label={cd.vcs_platform ? `${cd.vcs_platform} URL` : 'VCS URL'}
+							value={cd.vcs_url}
+							placeholder="Add VCS profile"
+							onSave={(v) => setContact('vcs_url', v)}
 							className="text-muted-foreground text-xs"
 						/>
 					</div>
@@ -183,9 +195,9 @@ export function ReviewProfileSection({
 						<Globe className="text-muted-foreground/50 size-3.5 shrink-0" />
 						<EditableField
 							label="Portfolio URL"
-							value={data.links?.portfolio}
+							value={cd.portfolio}
 							placeholder="Add portfolio"
-							onSave={(v) => setLink('portfolio', v)}
+							onSave={(v) => setContact('portfolio', v)}
 							className="text-muted-foreground text-xs"
 						/>
 					</div>

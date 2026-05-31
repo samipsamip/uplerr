@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData } from '@uppler/types';
 
 import {
 	getUserProfile,
@@ -15,7 +15,7 @@ export const useCreateProfileFromResume = () =>
 export const useVerifyResume = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (structuredData?: ResumeStructuredData) =>
+		mutationFn: (structuredData?: CvStructuredData) =>
 			patchVerifyResume(structuredData),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['userProfile'] });

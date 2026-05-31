@@ -9,7 +9,7 @@ import {
 	Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData } from '@uppler/types';
 
 import { Button } from '@/components/ui/button';
 import { MAX_FILE_SIZE_CV } from '@/lib/constants';
@@ -19,7 +19,7 @@ export interface CvFile {
 	name: string;
 	uploadedAt: string;
 	is_verified: boolean;
-	structuredData: ResumeStructuredData | null;
+	structuredData: CvStructuredData | null;
 }
 
 interface CvCardProps {

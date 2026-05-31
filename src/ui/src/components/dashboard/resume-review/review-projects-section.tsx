@@ -1,240 +1,323 @@
 import { useState } from 'react';
-import { Check, ExternalLink, Pencil, Plus, Trash2, X } from 'lucide-react';
-import type { ResumeStructuredData } from '@uppler/types';
+import { Check, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+import type { ProjectExtractionType } from '@uppler/types';
 
 import { BrandIcon } from '@/components/dashboard/brand-icon';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { getSkillIcon } from '@/lib/skill-icon';
 
-type Project = NonNullable<ResumeStructuredData['projects']>[number];
+type Project = ProjectExtractionType['projects'][number];
 
-function TechBadge({ label }: { label: string }) {
-	const icon = getSkillIcon(label);
-	if (icon) {
-		return (
-			<div title={label} className="bg-muted/60 rounded-lg p-1.5">
-				<BrandIcon name={icon} size={18} />
-			</div>
-		);
-	}
-	return (
-		<span className="border-border/50 bg-muted/50 text-muted-foreground rounded-md border px-1.5 py-0.5 text-[11px]">
-			{label}
-		</span>
-	);
+const TYPE_LABELS: Record<Project['type'], string> = {
+	company: 'Company',
+	solo: 'Personal',
+	freelance: 'Freelance',
+};
+
+const TYPE_CLASSES: Record<Project['type'], string> = {
+	company: 'bg-accent/10 text-accent border-0',
+	solo: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-0',
+	freelance: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-0',
+};
+
+const EMPTY_PROJECT: Project = {
+	name: '',
+	description: '',
+	technologies: [],
+	links: [],
+	type: 'solo',
+	source: 'projects_section',
+};
+
+function hasGoodShape(p: Project): boolean {
+	return !!(p.name && p.description);
 }
 
-function ProjectEntry({
-	entry,
-	onUpdate,
-	onRemove,
-	autoEdit,
-}: {
-	entry: Project;
-	onUpdate: (updated: Project) => void;
+interface ProjectCardProps {
+	project: Project;
+	onSave: (updated: Project) => void;
 	onRemove: () => void;
-	autoEdit?: boolean;
-}) {
-	const [editing, setEditing] = useState(autoEdit ?? false);
-	const [draft, setDraft] = useState(entry);
-	const [techInput, setTechInput] = useState(
-		entry.technologies?.join(', ') ?? '',
-	);
+	defaultEditing?: boolean;
+}
 
-	const commit = () => {
-		onUpdate({
-			...draft,
-			technologies: techInput
-				.split(',')
-				.map((t) => t.trim())
-				.filter(Boolean),
-		});
+function ProjectCard({
+	project,
+	onSave,
+	onRemove,
+	defaultEditing = false,
+}: ProjectCardProps) {
+	const [editing, setEditing] = useState(defaultEditing);
+	const [draft, setDraft] = useState<Project>(project);
+	const [error, setError] = useState<string | null>(null);
+
+	const save = () => {
+		if (!draft.name.trim()) {
+			setError('Project name is required.');
+			return;
+		}
+		if (!draft.description.trim()) {
+			setError('Description is required.');
+			return;
+		}
+		setError(null);
+		onSave(draft);
 		setEditing(false);
 	};
+
 	const discard = () => {
-		setDraft(entry);
-		setTechInput(entry.technologies?.join(', ') ?? '');
+		setDraft(project);
+		setError(null);
 		setEditing(false);
 	};
 
-	if (!editing) {
+	if (editing) {
 		return (
-			<div className="group/proj border-border/50 bg-card rounded-xl border p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
-				<div className="flex items-start justify-between gap-3">
-					<div className="min-w-0 flex-1">
-						<div className="flex items-center gap-2">
-							<p className="text-foreground text-sm font-medium leading-snug">
-								{entry.name}
-							</p>
-							{entry.url && (
-								<a
-									href={entry.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-muted-foreground/40 hover:text-accent transition-colors"
-									aria-label="View project"
-								>
-									<ExternalLink className="size-3" />
-								</a>
-							)}
-						</div>
-						{entry.description && (
-							<p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed">
-								{entry.description}
-							</p>
-						)}
-					</div>
-					<div className="flex shrink-0 items-center gap-1 pt-0.5 opacity-0 transition-opacity group-hover/proj:opacity-100">
-						<button
-							type="button"
-							onClick={() => setEditing(true)}
-							className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
-							aria-label="Edit"
-						>
-							<Pencil className="size-3.5" />
-						</button>
-						<button
-							type="button"
-							onClick={onRemove}
-							className="text-muted-foreground/40 hover:text-destructive transition-colors"
-							aria-label="Remove"
-						>
-							<Trash2 className="size-3.5" />
-						</button>
-					</div>
+			<div className="border-border/40 flex flex-col gap-3 rounded-xl border p-4">
+				<Input
+					value={draft.name}
+					onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+					placeholder="Project name"
+					className="font-medium"
+				/>
+				<Textarea
+					value={draft.description}
+					onChange={(e) =>
+						setDraft((d) => ({ ...d, description: e.target.value }))
+					}
+					placeholder="Short description"
+					rows={2}
+					className="resize-none text-sm"
+				/>
+				<div className="flex flex-col gap-1">
+					<p className="text-muted-foreground/50 text-[11px] font-semibold uppercase tracking-wide">
+						Technologies (comma-separated)
+					</p>
+					<Input
+						value={draft.technologies.join(', ')}
+						onChange={(e) =>
+							setDraft((d) => ({
+								...d,
+								technologies: e.target.value
+									.split(',')
+									.map((t) => t.trim())
+									.filter(Boolean),
+							}))
+						}
+						placeholder="React, TypeScript, Docker…"
+						className="text-sm"
+					/>
 				</div>
-				{entry.technologies && entry.technologies.length > 0 && (
-					<div className="mt-2 flex flex-wrap gap-1.5">
-						{entry.technologies.map((tech) => (
-							<TechBadge key={tech} label={tech} />
+				<div className="flex flex-col gap-1">
+					<p className="text-muted-foreground/50 text-[11px] font-semibold uppercase tracking-wide">
+						Links (one per line)
+					</p>
+					<Textarea
+						value={draft.links.join('\n')}
+						onChange={(e) =>
+							setDraft((d) => ({
+								...d,
+								links: e.target.value
+									.split('\n')
+									.map((l) => l.trim())
+									.filter(Boolean),
+							}))
+						}
+						placeholder="https://github.com/…"
+						rows={2}
+						className="resize-none text-sm"
+					/>
+				</div>
+				<div className="flex flex-col gap-1">
+					<p className="text-muted-foreground/50 text-[11px] font-semibold uppercase tracking-wide">
+						Type
+					</p>
+					<div className="flex gap-2">
+						{(['company', 'solo', 'freelance'] as const).map((t) => (
+							<button
+								key={t}
+								type="button"
+								onClick={() => setDraft((d) => ({ ...d, type: t }))}
+								className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors ${
+									draft.type === t
+										? TYPE_CLASSES[t]
+										: 'border-border/40 text-muted-foreground hover:border-border'
+								}`}
+							>
+								{TYPE_LABELS[t]}
+							</button>
 						))}
 					</div>
-				)}
+				</div>
+				{error && <p className="text-destructive text-xs">{error}</p>}
+				<div className="flex justify-end gap-2 pt-1">
+					<Button
+						size="sm"
+						variant="ghost"
+						onClick={discard}
+						aria-label="Discard"
+					>
+						Discard
+					</Button>
+					<Button size="sm" onClick={save} aria-label="Save">
+						<Check className="mr-1 size-3.5" />
+						Save
+					</Button>
+				</div>
 			</div>
 		);
 	}
 
+	const isGood = hasGoodShape(project);
+
 	return (
-		<div className="border-border/50 bg-card flex flex-col gap-3 rounded-xl border p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-			<div className="flex flex-col gap-1">
-				<label className="text-muted-foreground text-xs">Project name</label>
-				<Input
-					value={draft.name}
-					onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-					className="h-8 text-sm"
-					placeholder="e.g. Open Source CLI Tool"
-				/>
-			</div>
-			<div className="flex flex-col gap-1">
-				<label className="text-muted-foreground text-xs">Description</label>
-				<textarea
-					value={draft.description ?? ''}
-					onChange={(e) =>
-						setDraft({ ...draft, description: e.target.value || undefined })
-					}
-					className="border-border/50 bg-muted/40 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 min-h-[72px] w-full resize-none rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-[3px]"
-					placeholder="What it does and your role…"
-				/>
-			</div>
-			<div className="grid grid-cols-2 gap-3">
-				<div className="flex flex-col gap-1">
-					<label className="text-muted-foreground text-xs">URL</label>
-					<Input
-						value={draft.url ?? ''}
-						onChange={(e) =>
-							setDraft({ ...draft, url: e.target.value || undefined })
-						}
-						className="h-8 text-sm"
-						placeholder="https://…"
-					/>
+		<div className="border-border/40 rounded-xl border p-4">
+			<div className="flex items-start justify-between gap-2">
+				<div className="flex min-w-0 flex-col gap-1">
+					<div className="flex flex-wrap items-center gap-2">
+						<p className="text-sm font-medium leading-tight">
+							{project.name || (
+								<span className="text-muted-foreground/40 italic">
+									Untitled project
+								</span>
+							)}
+						</p>
+						<Badge className={`text-[10px] ${TYPE_CLASSES[project.type]}`}>
+							{TYPE_LABELS[project.type]}
+						</Badge>
+						<Badge
+							className={`text-[10px] ${
+								isGood
+									? 'border-0 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+									: 'border-0 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+							}`}
+						>
+							{isGood ? 'Looks good' : 'Review suggested'}
+						</Badge>
+					</div>
+					{project.description && (
+						<p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
+							{project.description}
+						</p>
+					)}
+					{project.technologies.length > 0 && (
+						<div className="mt-1.5 flex flex-wrap gap-1">
+							{project.technologies.map((tech) => {
+								const icon = getSkillIcon(tech);
+								return (
+									<span
+										key={tech}
+										className="bg-muted/60 text-foreground/70 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px]"
+									>
+										{icon && (
+											<BrandIcon
+												name={icon}
+												size={11}
+												className="shrink-0 opacity-80"
+											/>
+										)}
+										{tech}
+									</span>
+								);
+							})}
+						</div>
+					)}
+					{project.links.length > 0 && (
+						<div className="mt-1 flex flex-col gap-0.5">
+							{project.links.map((link) => (
+								<span
+									key={link}
+									className="text-accent flex items-center gap-1 text-xs"
+								>
+									<ExternalLink className="size-3 shrink-0" />
+									<span className="truncate">{link}</span>
+								</span>
+							))}
+						</div>
+					)}
 				</div>
-				<div className="flex flex-col gap-1">
-					<label className="text-muted-foreground text-xs">
-						Technologies (comma-separated)
-					</label>
-					<Input
-						value={techInput}
-						onChange={(e) => setTechInput(e.target.value)}
-						className="h-8 text-sm"
-						placeholder="React, Node.js, Postgres"
-					/>
+				<div className="flex shrink-0 gap-1">
+					<button
+						type="button"
+						onClick={() => setEditing(true)}
+						className="text-muted-foreground/40 hover:text-foreground rounded p-1 transition-colors"
+						aria-label="Edit project"
+					>
+						<Pencil className="size-3.5" />
+					</button>
+					<button
+						type="button"
+						onClick={onRemove}
+						className="text-muted-foreground/40 hover:text-destructive rounded p-1 transition-colors"
+						aria-label="Remove project"
+					>
+						<Trash2 className="size-3.5" />
+					</button>
 				</div>
-			</div>
-			<div className="flex items-center justify-end gap-2">
-				<Button variant="ghost" size="sm" onClick={discard}>
-					<X className="mr-1 size-3" />
-					Discard
-				</Button>
-				<Button size="sm" onClick={commit}>
-					<Check className="mr-1 size-3" />
-					Save
-				</Button>
 			</div>
 		</div>
 	);
 }
 
 interface ReviewProjectsSectionProps {
-	projects: NonNullable<ResumeStructuredData['projects']>;
-	onChange: (updated: NonNullable<ResumeStructuredData['projects']>) => void;
+	projects: ProjectExtractionType;
+	onChange: (projects: ProjectExtractionType) => void;
 }
 
 export function ReviewProjectsSection({
 	projects,
 	onChange,
 }: ReviewProjectsSectionProps) {
-	const [newIndex, setNewIndex] = useState<number | null>(null);
-
 	const update = (index: number, updated: Project) => {
-		const next = [...projects];
-		next[index] = updated;
-		onChange(next);
-		if (index === newIndex) setNewIndex(null);
-	};
-	const remove = (index: number) => {
-		onChange(projects.filter((_, i) => i !== index));
-		if (index === newIndex) setNewIndex(null);
-	};
-	const add = () => {
-		const next = [
-			...projects,
-			{ name: '', description: '', url: '', technologies: [] },
-		];
-		onChange(next);
-		setNewIndex(next.length - 1);
+		const next = projects.projects.map((p, i) => (i === index ? updated : p));
+		onChange({ projects: next });
 	};
 
-	if (projects.length === 0) {
+	const remove = (index: number) => {
+		onChange({ projects: projects.projects.filter((_, i) => i !== index) });
+	};
+
+	const addNew = () => {
+		onChange({ projects: [...projects.projects, { ...EMPTY_PROJECT }] });
+	};
+
+	if (projects.projects.length === 0) {
 		return (
-			<button
-				type="button"
-				onClick={add}
-				className="border-border text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-4 text-sm transition-colors"
-			>
-				<Plus className="size-4" />
-				Add project
-			</button>
+			<div className="flex flex-col items-center gap-3 py-8">
+				<p className="text-muted-foreground/50 text-sm">
+					No projects extracted
+				</p>
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={addNew}
+					aria-label="Add project"
+				>
+					<Plus className="mr-1.5 size-3.5" />
+					Add project
+				</Button>
+			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-col gap-4">
-			{projects.map((entry, i) => (
-				<ProjectEntry
+		<div className="flex flex-col gap-3">
+			{projects.projects.map((project, i) => (
+				<ProjectCard
 					key={i}
-					entry={entry}
-					onUpdate={(updated) => update(i, updated)}
+					project={project}
+					onSave={(updated) => update(i, updated)}
 					onRemove={() => remove(i)}
-					autoEdit={i === newIndex}
 				/>
 			))}
 			<button
 				type="button"
-				onClick={add}
-				className="text-muted-foreground/50 hover:text-muted-foreground flex items-center gap-1 self-start text-sm transition-colors"
+				onClick={addNew}
+				className="text-muted-foreground/40 hover:text-muted-foreground flex items-center gap-1.5 self-start rounded-lg border border-dashed px-3 py-1.5 text-xs transition-colors"
 			>
-				<Plus className="size-3.5" />
+				<Plus className="size-3" />
 				Add project
 			</button>
 		</div>

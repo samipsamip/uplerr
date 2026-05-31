@@ -23,3 +23,11 @@ export class ResumeDuplicateError extends Error {
 		this.name = 'ResumeDuplicateError';
 	}
 }
+
+export class ResumeModerationError extends Error {
+	public readonly code = 'MALICIOUS_CONTENT';
+	constructor(public readonly reason: string) {
+		super('Uploaded content was flagged for moderation.');
+		this.name = 'ResumeModerationError';
+	}
+}

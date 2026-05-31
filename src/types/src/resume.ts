@@ -28,8 +28,14 @@ const ContactDetailsSchema = z
 		phone: z.string().nullable(),
 		location: z.string().nullable(),
 		linkedin: z.string().url().nullable(),
-		github: z.string().url().nullable(),
 		portfolio: z.string().url().nullable(),
+
+		// VCS (new fields)
+		vcs_platform: z
+			.enum(['GitHub', 'GitLab', 'Bitbucket', 'Azure', 'AWS'])
+			.nullable(),
+
+		vcs_url: z.string().url().nullable(),
 	})
 	.strict();
 
@@ -88,7 +94,32 @@ const CertificationSchema = z
 	.strict();
 
 /**
- * Root schema (hardened)
+ * Project item
+ */
+const ProjectSchema = z
+	.object({
+		name: z.string(),
+
+		description: z.string(),
+
+		technologies: z.array(z.string()),
+
+		links: z.array(z.string()),
+
+		type: z.enum(['company', 'solo', 'freelance']),
+
+		source: z.enum([
+			'projects_section',
+			'work_experience',
+			'academic',
+			'portfolio',
+			'other',
+		]),
+	})
+	.strict();
+
+/**
+ * Root resume extraction schema (UPDATED)
  */
 export const ResumeExtractionSchema = z
 	.object({
@@ -99,8 +130,9 @@ export const ResumeExtractionSchema = z
 			phone: null,
 			location: null,
 			linkedin: null,
-			github: null,
 			portfolio: null,
+			vcs_platform: null,
+			vcs_url: null,
 		}),
 
 		professional_summary: z.string().nullable().default(null),
@@ -116,7 +148,7 @@ export const ResumeExtractionSchema = z
 	.strict();
 
 /**
- * Where a skill was found in the resume
+ * Skill source
  */
 const SkillSource = z.enum([
 	'skills_section',
@@ -127,7 +159,7 @@ const SkillSource = z.enum([
 ]);
 
 /**
- * Core skill item
+ * Skill item
  */
 const SkillItem = z
 	.object({
@@ -137,37 +169,37 @@ const SkillItem = z
 	.strict();
 
 /**
- * Helper: non-empty array of unique skills (runtime dedupe)
+ * Skill array with dedupe
  */
 const SkillArray = z
 	.array(SkillItem)
 	.default([])
 	.transform((arr) => {
 		const seen = new Set<string>();
+
 		return arr.filter((item) => {
 			const key = `${item.name.toLowerCase()}::${item.source}`;
+
 			if (seen.has(key)) return false;
+
 			seen.add(key);
+
 			return true;
 		});
 	});
 
 /**
- * Root schema
+ * Skill extraction schema
  */
 export const SkillExtractionSchema = z
 	.object({
 		technical_skills: SkillArray,
-
 		tools_platforms: SkillArray,
-
 		spoken_languages: SkillArray,
-
 		soft_skills: SkillArray,
 	})
 	.strict()
 	.transform((data) => {
-		// Optional normalization pass (trim all names)
 		const normalize = (skills: z.infer<typeof SkillItem>[]) =>
 			skills.map((s) => ({
 				...s,
@@ -183,19 +215,48 @@ export const SkillExtractionSchema = z
 		};
 	});
 
+/**
+ * Project extraction schema
+ */
+export const ProjectExtractionSchema = z
+	.object({
+		projects: z.array(ProjectSchema),
+	})
+	.strict();
+
+/**
+ * Valid resume check
+ */
 export const ValidResumeReturnSchema = z
 	.object({
 		isValid: z.boolean(),
 	})
 	.strict();
 
+/**
+ * Moderation schema
+ */
 export const ModerationReturnSchema = z
 	.object({
 		is_malicious: z.boolean(),
 		reason: z.string(),
 	})
 	.strict();
+
+/**
+ * Types
+ */
 export type ResumeExtractionType = z.infer<typeof ResumeExtractionSchema>;
 export type SkillExtractionType = z.infer<typeof SkillExtractionSchema>;
+export type ProjectExtractionType = z.infer<typeof ProjectExtractionSchema>;
 export type ValidResumeType = z.infer<typeof ValidResumeReturnSchema>;
 export type ResumeModerationType = z.infer<typeof ModerationReturnSchema>;
+
+/**
+ * Combined structured output
+ */
+export type CvStructuredData = {
+	extraction: ResumeExtractionType;
+	skills: SkillExtractionType;
+	projects: ProjectExtractionType;
+};

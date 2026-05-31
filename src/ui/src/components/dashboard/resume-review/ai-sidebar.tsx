@@ -8,7 +8,7 @@ import {
 	Sparkles,
 	TrendingUp,
 } from 'lucide-react';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { CvStructuredData, ResumeExtractionType } from '@uppler/types';
 
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -20,16 +20,17 @@ import {
 	computeProfileStrength,
 	detectProfileType,
 	estimateYearsOfExperience,
+	flattenSkills,
 	strengthLabel,
 } from './utils';
 
 interface AiSidebarProps {
-	data: ResumeStructuredData;
+	data: CvStructuredData;
 	skillMatchMeta?: SkillMatchMeta;
 }
 
 function detectEducationLevel(
-	education: ResumeStructuredData['education'],
+	education: ResumeExtractionType['education'],
 ): string | null {
 	const text = education.map((e) => e.degree?.toLowerCase() ?? '').join(' ');
 	if (/phd|doctorate|doctor of/.test(text)) return 'PhD';
@@ -40,9 +41,9 @@ function detectEducationLevel(
 }
 
 function detectCareerProgression(
-	experience: ResumeStructuredData['experience'],
+	workHistory: ResumeExtractionType['work_history'],
 ): string | null {
-	const roles = experience.map((e) => e.role?.toLowerCase() ?? '');
+	const roles = workHistory.map((e) => e.role?.toLowerCase() ?? '');
 	const hasSenior = roles.some((r) =>
 		/senior|lead|principal|staff|head|director|vp|architect/.test(r),
 	);
@@ -55,26 +56,25 @@ function detectCareerProgression(
 	return null;
 }
 
-function getCompletionTips(data: ResumeStructuredData): string[] {
+function getCompletionTips(data: CvStructuredData): string[] {
 	const tips: string[] = [];
-	if (!data.links?.linkedin)
+	const { extraction, skills } = data;
+	const cd = extraction.contact_details;
+	const allSkills = flattenSkills(skills);
+
+	if (!cd.linkedin)
 		tips.push('Add your LinkedIn to boost recruiter visibility');
-	if (!data.links?.github && data.skills.length > 3)
-		tips.push('Add a GitHub link to show your work');
-	if (!data.links?.portfolio)
-		tips.push('A portfolio URL lifts your profile score');
-	if (data.skills.length < 8)
+	if (!cd.vcs_url && allSkills.length > 3)
+		tips.push('Add a VCS profile link to show your work');
+	if (!cd.portfolio) tips.push('A portfolio URL lifts your profile score');
+	if (allSkills.length < 8)
 		tips.push(
-			`Add ${8 - data.skills.length} more skills to unlock roadmap matching`,
+			`Add ${8 - allSkills.length} more skills to unlock roadmap matching`,
 		);
-	if (
-		data.experience.some((e) => !e.description || e.description.length < 80)
-	) {
+	if (extraction.work_history.some((e) => e.bullet_points.length < 2)) {
 		tips.push('Expand short role descriptions for better AI matching');
 	}
-	if ((data.projects?.length ?? 0) === 0)
-		tips.push('Add a project to demonstrate hands-on work');
-	return tips.slice(0, 3); // show at most 3 tips
+	return tips.slice(0, 3);
 }
 
 const SUGGESTIONS: Record<string, string[]> = {
@@ -99,48 +99,85 @@ function getSuggestedSkills(
 	return [];
 }
 
+/** Shared label style used in every card */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+	return (
+		<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
+			{children}
+		</p>
+	);
+}
+
+/** Card wrapper: border + rounded on mobile, invisible on desktop */
+function Card({
+	className,
+	children,
+}: {
+	className?: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<div
+			className={cn(
+				'border-border/40 flex flex-col gap-3 rounded-xl border p-3',
+				'md:gap-4 md:rounded-none md:border-0 md:p-0',
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
+}
+
 export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 	const strength = computeProfileStrength(data);
 	const label = strengthLabel(strength);
 	const profileType = detectProfileType(data.skills);
-	const categories = categorizeSkills(data.skills);
-	const totalSkills = data.skills.length;
+	const allSkillNames = flattenSkills(data.skills);
+	const categories = categorizeSkills(allSkillNames);
+	const totalSkills = allSkillNames.length;
 	const maxCategoryCount = Math.max(...categories.map(([, s]) => s.length), 1);
 
-	const yearsExp = estimateYearsOfExperience(data.experience);
-	const educationLevel = detectEducationLevel(data.education);
-	const careerProgression = detectCareerProgression(data.experience);
+	const yearsExp = estimateYearsOfExperience(data.extraction.work_history);
+	const educationLevel = detectEducationLevel(data.extraction.education);
+	const careerProgression = detectCareerProgression(
+		data.extraction.work_history,
+	);
 	const completionTips = getCompletionTips(data);
+	const suggestedSkills = getSuggestedSkills(profileType, allSkillNames);
 
-	const experienceText = data.experience
-		.map((e) => e.description ?? '')
+	const goodRoles = data.extraction.work_history.filter(
+		(e) =>
+			e.role && e.company && e.start_date.raw && e.bullet_points.length >= 2,
+	).length;
+	const totalRoles = data.extraction.work_history.length;
+
+	const experienceText = data.extraction.work_history
+		.flatMap((e) => e.bullet_points)
 		.join(' ')
 		.toLowerCase();
-	const skillsEvidenced = data.skills.filter((s) =>
+	const skillsEvidenced = allSkillNames.filter((s) =>
 		experienceText.includes(s.toLowerCase()),
 	).length;
 
-	const suggestedSkills = getSuggestedSkills(profileType, data.skills);
-
-	const goodRoles = data.experience.filter(
-		(e) =>
-			e.role && e.company && e.duration && (e.description?.length ?? 0) > 100,
-	).length;
+	const cd = data.extraction.contact_details;
 
 	const completenessFactors = [
-		{ label: 'Identity', complete: !!(data.name && data.location) },
-		{ label: 'Contact', complete: !!(data.email && data.phone) },
+		{
+			label: 'Identity',
+			complete: !!(data.extraction.full_name && cd.location),
+		},
+		{ label: 'Contact', complete: !!(cd.email && cd.phone) },
 		{
 			label: 'Online presence',
-			complete: !!(data.links?.linkedin || data.links?.github),
+			complete: !!(cd.linkedin || cd.vcs_url),
 		},
-		{ label: 'Work experience', complete: data.experience.length > 0 },
+		{ label: 'Work experience', complete: totalRoles > 0 },
 		{
-			label: `Skills${data.skills.length > 0 ? ` · ${data.skills.length}` : ''}`,
-			complete: data.skills.length >= 8,
+			label: `Skills${totalSkills > 0 ? ` · ${totalSkills}` : ''}`,
+			complete: totalSkills >= 8,
 		},
-		{ label: 'Education', complete: data.education.length > 0 },
-		{ label: 'Projects', complete: (data.projects?.length ?? 0) > 0 },
+		{ label: 'Education', complete: data.extraction.education.length > 0 },
 	];
 
 	const badgeClass = cn(
@@ -154,16 +191,21 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 	);
 
 	return (
-		<aside className="border-border/40 relative flex w-full flex-col gap-0 overflow-auto border-l">
+		<aside className="relative w-full overflow-auto">
 			<div className="from-accent/[0.05] pointer-events-none absolute inset-0 bg-gradient-to-b via-transparent to-transparent" />
-			<div className="relative flex flex-col gap-7 px-6 py-8">
-				{/* Profile Strength */}
-				<div className="flex flex-col gap-4">
-					<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-						Profile Strength
-					</p>
+
+			{/*
+			  Mobile:  2-column grid of cards
+			  Desktop: single vertical column (md:flex md:flex-col)
+			*/}
+			<div className="relative grid grid-cols-2 gap-3 p-4 md:flex md:flex-col md:gap-7 md:px-6 md:py-8">
+				{/* ── Profile Strength ── */}
+				<Card>
+					<SectionLabel>Profile Strength</SectionLabel>
 					<div className="flex items-end justify-between">
-						<p className="text-4xl font-semibold tracking-tight">{strength}%</p>
+						<p className="text-3xl font-semibold tracking-tight md:text-4xl">
+							{strength}%
+						</p>
 						<Badge className={badgeClass}>{label}</Badge>
 					</div>
 					<div className="bg-muted h-1.5 rounded-full">
@@ -172,7 +214,7 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							style={{ width: `${strength}%` }}
 						/>
 					</div>
-					<div className="flex flex-col gap-2.5">
+					<div className="flex flex-col gap-2">
 						{completenessFactors.map(({ label: factorLabel, complete }) => (
 							<div key={factorLabel} className="flex items-center gap-2">
 								<div
@@ -194,29 +236,28 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							</div>
 						))}
 					</div>
-				</div>
+				</Card>
 
-				<Separator className="bg-border/40" />
+				{/* Desktop separator */}
+				<Separator className="bg-border/40 hidden md:block" />
 
-				{/* AI Analysis */}
-				<div className="flex flex-col gap-3">
-					<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-						AI Analysis
-					</p>
-					<div className="flex items-start gap-2.5">
+				{/* ── AI Analysis ── */}
+				<Card>
+					<SectionLabel>AI Analysis</SectionLabel>
+					<div className="flex items-start gap-2">
 						<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 							<Sparkles className="size-3" />
 						</div>
-						<p className="text-muted-foreground text-sm leading-relaxed">
+						<p className="text-muted-foreground text-xs leading-relaxed md:text-sm">
 							{profileType}
 						</p>
 					</div>
 					{yearsExp !== null && (
-						<div className="flex items-start gap-2.5">
+						<div className="flex items-start gap-2">
 							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 								<TrendingUp className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								<span className="text-foreground/80 font-medium">
 									~{yearsExp} {yearsExp === 1 ? 'year' : 'years'}
 								</span>
@@ -225,21 +266,21 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 						</div>
 					)}
 					{careerProgression && (
-						<div className="flex items-start gap-2.5">
+						<div className="flex items-start gap-2">
 							<div className="mt-0.5 shrink-0 rounded-lg bg-emerald-500/10 p-1 text-emerald-600">
 								<TrendingUp className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								{careerProgression}
 							</p>
 						</div>
 					)}
 					{educationLevel && (
-						<div className="flex items-start gap-2.5">
+						<div className="flex items-start gap-2">
 							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 								<GraduationCap className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								<span className="text-foreground/80 font-medium">
 									{educationLevel}
 								</span>
@@ -247,24 +288,24 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							</p>
 						</div>
 					)}
-					{data.experience.length > 0 && (
-						<div className="flex items-start gap-2.5">
+					{totalRoles > 0 && (
+						<div className="flex items-start gap-2">
 							<div className="mt-0.5 shrink-0 rounded-lg bg-emerald-500/10 p-1 text-emerald-600">
 								<CheckCircle2 className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
-								{goodRoles === data.experience.length
-									? `All ${data.experience.length} roles extracted cleanly`
-									: `${goodRoles} of ${data.experience.length} roles look good`}
+							<p className="text-muted-foreground text-xs md:text-sm">
+								{goodRoles === totalRoles
+									? `All ${totalRoles} roles extracted cleanly`
+									: `${goodRoles} of ${totalRoles} roles look good`}
 							</p>
 						</div>
 					)}
 					{skillMatchMeta && skillMatchMeta.total > 0 && (
-						<div className="flex items-start gap-2.5">
+						<div className="flex items-start gap-2">
 							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 								<Database className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								<span className="text-foreground/80 font-medium">
 									{skillMatchMeta.matched}
 								</span>
@@ -276,25 +317,25 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							</p>
 						</div>
 					)}
-					{data.experience.length > 0 && data.skills.length > 0 && (
-						<div className="flex items-start gap-2.5">
+					{totalRoles > 0 && totalSkills > 0 && (
+						<div className="flex items-start gap-2">
 							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 								<Layers3 className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								<span className="text-foreground/80 font-medium">
-									{skillsEvidenced} of {data.skills.length}
+									{skillsEvidenced} of {totalSkills}
 								</span>
 								{' skills backed by experience'}
 							</p>
 						</div>
 					)}
 					{suggestedSkills.length > 0 && (
-						<div className="flex items-start gap-2.5">
+						<div className="flex items-start gap-2">
 							<div className="bg-accent/[0.08] text-accent mt-0.5 shrink-0 rounded-lg p-1">
 								<Lightbulb className="size-3" />
 							</div>
-							<p className="text-muted-foreground text-sm">
+							<p className="text-muted-foreground text-xs md:text-sm">
 								{'Consider adding: '}
 								<span className="text-foreground/80 font-medium">
 									{suggestedSkills.join(', ')}
@@ -302,17 +343,16 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 							</p>
 						</div>
 					)}
-				</div>
+				</Card>
 
+				{/* ── Suggestions — spans both cols on mobile ── */}
 				{completionTips.length > 0 && (
 					<>
-						<Separator className="bg-border/40" />
-						<div className="flex flex-col gap-3">
-							<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-								Suggestions
-							</p>
+						<Separator className="bg-border/40 col-span-2 hidden md:block" />
+						<Card className="col-span-2">
+							<SectionLabel>Suggestions</SectionLabel>
 							{completionTips.map((tip) => (
-								<div key={tip} className="flex items-start gap-2.5">
+								<div key={tip} className="flex items-start gap-2">
 									<div className="mt-0.5 shrink-0 rounded-lg bg-amber-500/10 p-1 text-amber-600">
 										<AlertCircle className="size-3" />
 									</div>
@@ -321,20 +361,17 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 									</p>
 								</div>
 							))}
-						</div>
+						</Card>
 					</>
 				)}
 
+				{/* ── Skill Distribution — spans both cols on mobile ── */}
 				{categories.length > 0 && (
 					<>
-						<Separator className="bg-border/40" />
-
-						{/* Skill Distribution */}
-						<div className="flex flex-col gap-3">
+						<Separator className="bg-border/40 col-span-2 hidden md:block" />
+						<Card className="col-span-2">
 							<div className="flex items-baseline justify-between">
-								<p className="text-muted-foreground text-[10px] font-semibold uppercase tracking-[0.1em]">
-									Skill Distribution
-								</p>
+								<SectionLabel>Skill Distribution</SectionLabel>
 								<span className="text-muted-foreground/40 text-[10px]">
 									{totalSkills} total
 								</span>
@@ -352,12 +389,12 @@ export function AiSidebar({ data, skillMatchMeta }: AiSidebarProps) {
 											}}
 										/>
 									</div>
-									<span className="text-foreground/60 w-4 shrink-0 text-right text-xs font-medium">
+									<span className="text-muted-foreground/50 w-4 text-right text-xs">
 										{categorySkills.length}
 									</span>
 								</div>
 							))}
-						</div>
+						</Card>
 					</>
 				)}
 			</div>

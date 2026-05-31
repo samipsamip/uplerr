@@ -2,33 +2,38 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ResumeStructuredData } from '@uppler/types';
+import type { ResumeExtractionType } from '@uppler/types';
 
 import { ReviewExperienceSection } from '@/components/dashboard/resume-review/review-experience-section';
 
 import { renderWithProviders } from '../../../helpers/render';
 
-type Experience = ResumeStructuredData['experience'];
+type WorkHistory = ResumeExtractionType['work_history'];
 
-function Controlled({ initial }: { initial: Experience }) {
+function Controlled({ initial }: { initial: WorkHistory }) {
 	const [exp, setExp] = useState(initial);
 	return <ReviewExperienceSection experience={exp} onChange={setExp} />;
 }
 
-// First description exceeds TRUNCATE_AT (180 chars) to trigger Show more
-const experience = [
+const experience: WorkHistory = [
 	{
 		role: 'Senior Engineer',
 		company: 'Acme Corp',
-		duration: 'Jan 2021 – Present',
-		description:
-			'Led a team of five engineers building a distributed payment system across multiple cloud regions. Reduced latency by 40% through strategic caching and query optimisation. Mentored junior developers and drove technical roadmap planning for the next two years.',
+		start_date: { raw: 'Jan 2021', normalized: '2021-01-01' },
+		end_date: { raw: null, normalized: null },
+		is_current: true,
+		bullet_points: [
+			'Led a team of five engineers building a distributed payment system.',
+			'Reduced latency by 40% through strategic caching and query optimisation.',
+		],
 	},
 	{
 		role: 'Junior Developer',
 		company: 'StartupXYZ',
-		duration: 'Jun 2019 – Dec 2020',
-		description: 'Built React components and unit tests.',
+		start_date: { raw: 'Jun 2019', normalized: '2019-06-01' },
+		end_date: { raw: 'Dec 2020', normalized: '2020-12-01' },
+		is_current: false,
+		bullet_points: ['Built React components and unit tests.'],
 	},
 ];
 
@@ -58,11 +63,18 @@ describe('ReviewExperienceSection — display', () => {
 	});
 
 	it('shows "Review suggested" for entries missing key fields', () => {
+		const incomplete: WorkHistory = [
+			{
+				role: null,
+				company: null,
+				start_date: { raw: null, normalized: null },
+				end_date: { raw: null, normalized: null },
+				is_current: false,
+				bullet_points: ['Something'],
+			},
+		];
 		renderWithProviders(
-			<ReviewExperienceSection
-				experience={[{ role: '', company: '', description: 'Something' }]}
-				onChange={vi.fn()}
-			/>,
+			<ReviewExperienceSection experience={incomplete} onChange={vi.fn()} />,
 		);
 		expect(screen.getByText(/review suggested/i)).toBeInTheDocument();
 	});
@@ -80,31 +92,6 @@ describe('ReviewExperienceSection — display', () => {
 		);
 		expect(
 			screen.getByRole('button', { name: /add experience/i }),
-		).toBeInTheDocument();
-	});
-});
-
-describe('ReviewExperienceSection — truncation', () => {
-	it('truncates long descriptions and shows Show more', () => {
-		renderWithProviders(
-			<ReviewExperienceSection experience={experience} onChange={vi.fn()} />,
-		);
-		// First entry description is > 180 chars
-		expect(
-			screen.getByRole('button', { name: /show more/i }),
-		).toBeInTheDocument();
-	});
-
-	it('expands the description when Show more is clicked', async () => {
-		const user = userEvent.setup();
-		renderWithProviders(
-			<ReviewExperienceSection experience={experience} onChange={vi.fn()} />,
-		);
-
-		await user.click(screen.getByRole('button', { name: /show more/i }));
-
-		expect(
-			screen.getByRole('button', { name: /show less/i }),
 		).toBeInTheDocument();
 	});
 });
@@ -183,7 +170,6 @@ describe('ReviewExperienceSection — add entry', () => {
 
 		await user.click(screen.getByText(/add position/i));
 
-		// New entry renders in edit mode: its role input (empty) is now visible
 		const emptyInputs = screen
 			.getAllByRole('textbox')
 			.filter((el) => (el as HTMLInputElement).value === '');
