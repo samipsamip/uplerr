@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowRight, Building2, Clock, Plus, Search } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -6,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+import CreateRoadMapModal from '../roadmaps/create-roadmap-modal';
 import { TopBar } from './top-bar';
 
 // --- Types — replace with API response shapes when ready ---
@@ -88,13 +90,14 @@ const roadmaps: Roadmap[] = [
 ];
 
 export default function RoadmapsMain() {
+	const [open, setOpen] = useState<boolean>(false);
 	return (
 		<>
 			<TopBar
 				title="Roadmaps"
 				description="Paste a job listing to generate a personalised learning path."
 				action={
-					<Button size="sm" className="gap-1.5">
+					<Button size="sm" className="gap-1.5" onClick={() => setOpen(true)}>
 						<Plus className="size-3.5" />
 						New Roadmap
 					</Button>
@@ -221,6 +224,7 @@ export default function RoadmapsMain() {
 					})}
 				</div>
 			</div>
+			<CreateRoadMapModal open={open} setOpen={setOpen} />
 		</>
 	);
 }
