@@ -138,6 +138,11 @@ class BrainTrust {
 			this.logger.flush();
 		}
 	}
+	async moderateJobDescription(
+		jobDescriptionRawText: string,
+		profileId: string,
+	) {}
+	async identifyGapsBetweenJDandUser() {}
 }
 
 export const braintrust = new BrainTrust({

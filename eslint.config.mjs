@@ -78,6 +78,10 @@ export default tseslint.config(
 	// General rules — all TS/JS files
 	{
 		rules: {
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+			],
 			'no-console': 'warn',
 			'no-nested-ternary': 'warn',
 			'@typescript-eslint/naming-convention': [

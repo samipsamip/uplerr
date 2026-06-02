@@ -19,7 +19,11 @@ const GenerateRoadmapFromURL = () => {
 			<Label htmlFor="job-description-extracted">
 				Extracted Job Description
 			</Label>
-			<Textarea id="job-description-extracted" disabled />
+			<Textarea
+				id="job-description-extracted"
+				className="bg-muted/40 border-border/50 max-h-[140px] w-full resize-none overflow-auto"
+				disabled
+			/>
 		</div>
 	);
 };

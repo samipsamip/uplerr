@@ -12,7 +12,7 @@ const GenerateRoadmapFromText = () => {
 			<Textarea
 				id="raw-text"
 				placeholder="Paste job description here..."
-				className="bg-muted/40 border-border/50 min-h-[140px] w-full resize-none"
+				className="bg-muted/40 border-border/50 max-h-[140px] w-full resize-none overflow-auto"
 			/>
 		</div>
 	);

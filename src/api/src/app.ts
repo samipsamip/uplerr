@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 
 import profileRoute from './components/profiles/profiles.route';
 import roadMapsRoute from './components/roadmaps/roadmaps.route';
+import scraperRoute from './components/scraper/scraper.route';
 import skillsRoute from './components/skills/skills.route';
 import { auth } from './lib/auth';
 import { factory } from './lib/factory';
@@ -39,6 +40,7 @@ export function buildApp() {
 	app.route('/api/profile', profileRoute);
 	app.route('/api/skills', skillsRoute);
 	app.route('/api/roadmaps', roadMapsRoute);
+	app.route('/api/scraper', scraperRoute);
 
 	app.post('/api/debug/parse-pdf', async (c) => {
 		const formData = await c.req.formData();

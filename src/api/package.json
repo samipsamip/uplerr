@@ -20,6 +20,7 @@
 		"@aws-sdk/client-s3": "^3.1057.0",
 		"@aws-sdk/s3-request-presigner": "^3.1057.0",
 		"@hono/node-server": "^1.19.14",
+		"@hono/zod-validator": "^0.8.0",
 		"@langfuse/client": "^5.4.1",
 		"@mozilla/readability": "^0.6.0",
 		"@uppler/types": "workspace:*",
