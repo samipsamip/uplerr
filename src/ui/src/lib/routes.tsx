@@ -16,6 +16,7 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
 import Dashboard from '@/pages/dashboard/Dashboard';
+import RoadmapReview from '@/pages/dashboard/RoadmapReview';
 import Roadmaps from '@/pages/dashboard/Roadmaps';
 import Skills from '@/pages/dashboard/Skills';
 import SkillsReview from '@/pages/dashboard/SkillsReview';
@@ -128,6 +129,10 @@ const privateRoutes: RouteObject[] = [
 			{
 				path: 'roadmaps',
 				Component: Roadmaps,
+			},
+			{
+				path: 'roadmaps/review',
+				Component: RoadmapReview,
 			},
 			{
 				path: 'skills',

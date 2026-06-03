@@ -21,6 +21,7 @@ import {
 	validateRedirect,
 	validateUrl,
 } from './url-validator';
+import { normalizeText } from './utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -456,9 +457,20 @@ function withTimeout<T>(
 
 const rateLimiter = new DomainRateLimiter(10, 60_000);
 
+export type ScraperStage =
+	| 'validating'
+	| 'checking-cache'
+	| 'fetching'
+	| 'extracting'
+	| 'deep-loading';
+
 export class JobAdvertisementScraper {
-	async scrapeJobListing(rawUrl: string): Promise<ScrapeResult> {
+	async scrapeJobListing(
+		rawUrl: string,
+		onProgress?: (stage: ScraperStage) => void,
+	): Promise<ScrapeResult> {
 		// 1. URL validation — scheme allowlist, private IP, DNS rebinding
+		onProgress?.('validating');
 		let url: URL;
 		try {
 			url = await validateUrl(rawUrl);
@@ -488,6 +500,7 @@ export class JobAdvertisementScraper {
 		}
 
 		// 4. Cache lookup
+		onProgress?.('checking-cache');
 		const hash = hashUrl(url);
 		const cached = await getFromCache(hash);
 		if (cached) {
@@ -500,6 +513,7 @@ export class JobAdvertisementScraper {
 		}
 
 		// 5. Tier 1 & 2 — plain HTTP fetch
+		onProgress?.('fetching');
 		let content: string | null = null;
 		let source: ScrapeSource = 'readability';
 
@@ -509,6 +523,7 @@ export class JobAdvertisementScraper {
 				FETCH_TIMEOUT_MS,
 				'HTTP fetch',
 			);
+			onProgress?.('extracting');
 			const clean = sanitizeHtml(html);
 
 			const jsonLd = extractJsonLd(clean);
@@ -526,17 +541,19 @@ export class JobAdvertisementScraper {
 			if (err instanceof ScraperError && err.code !== 'FETCH_FAILED') {
 				return { success: false, error: err.message, code: err.code };
 			}
-			// FETCH_FAILED falls through to Playwright
+			// FETCH_FAILED falls through to deep-loading
 		}
 
-		// 6. Tier 3 — Playwright fallback for JS-heavy pages
+		// 6. Tier 3 — JS-heavy page fallback
 		if (!content) {
+			onProgress?.('deep-loading');
 			try {
 				const html = await withTimeout(
 					renderWithPlaywright(url),
 					PLAYWRIGHT_TIMEOUT_MS + PLAYWRIGHT_SETTLE_MS + 2_000,
 					'Playwright render',
 				);
+				onProgress?.('extracting');
 				const clean = sanitizeHtml(html);
 				const readable = extractWithReadability(clean, url);
 

@@ -23,6 +23,7 @@ export default defineConfig({
 				'src/lib/constants.ts',
 				'src/auth-client.ts',
 				'src/network/client.ts',
+				'src/pages/PdfDebugPage.tsx',
 			],
 			reporter: ['text', 'html'],
 		},

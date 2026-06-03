@@ -16,6 +16,7 @@ export default tseslint.config(
 			'**/dist/**',
 			'**/node_modules/**',
 			'src/ui/src/components/ui/**',
+			"**/*.test.{ts,tsx}",
 		],
 	},
 	js.configs.recommended,

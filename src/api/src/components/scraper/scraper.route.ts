@@ -1,7 +1,10 @@
 import { factory } from '../../lib/factory';
 import { authMiddleWare } from '../../lib/middleware';
 import { zValidator } from '../../lib/validator';
-import { scrapeJobDetails, startJobScraping } from './scraper.controller';
+import {
+	getJobScrapingProgressByJobID,
+	startJobScraping,
+} from './scraper.controller';
 import {
 	JobDetailsStreamSchema,
 	ScrapeJobDetailsRequestSchema,
@@ -20,7 +23,7 @@ scraperRoute.get(
 	'/:jobId/stream',
 	authMiddleWare,
 	zValidator('param', JobDetailsStreamSchema),
-	...scrapeJobDetails,
+	...getJobScrapingProgressByJobID,
 );
 
 export default scraperRoute;

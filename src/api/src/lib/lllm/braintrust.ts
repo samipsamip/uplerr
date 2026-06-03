@@ -13,6 +13,9 @@ const BRAINTRUST_PROMPT_SLUGS = {
 	EXTRACT_SKILLS: 'uplerr-extract-skills-798c',
 	RESUME_MODERATION: 'uplerr-resume-moderator-42f7',
 	RESUME_PROJECTS_EXTRACTION: 'uplerr-resume-extract-projects-9a0a',
+	RESUME_JOB_DESCRIPTION_MODERATION: 'uplerr-job-description-moderator-837d',
+	RESUME_JOB_DESCRIPTION_GAP_ANALYSIS: 'uplerr-job-desc',
+	RESUME_SKILL_LEARNING_PATH: 'uplerr-skill-learning-path',
 } as const;
 
 type BrainTrustConfig = {
@@ -141,7 +144,23 @@ class BrainTrust {
 	async moderateJobDescription(
 		jobDescriptionRawText: string,
 		profileId: string,
-	) {}
+	) {
+		try {
+			return await invoke({
+				projectId: this.config.projectId,
+				projectName: this.config.projectName,
+				slug: BRAINTRUST_PROMPT_SLUGS.RESUME_JOB_DESCRIPTION_MODERATION,
+				input: {
+					JOB_DESCRIPTION: jobDescriptionRawText,
+				},
+				metadata: {
+					profileId,
+				},
+			});
+		} finally {
+			this.logger.flush();
+		}
+	}
 	async identifyGapsBetweenJDandUser() {}
 }
 

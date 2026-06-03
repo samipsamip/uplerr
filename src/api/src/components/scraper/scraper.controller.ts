@@ -1,14 +1,12 @@
-import { EventEmitter } from 'stream';
-
 import { factory } from '../../lib/factory';
-import { startScraperWorker } from './scraper.service';
+import { type JobState, startScraperWorker } from './scraper.service';
 import {
 	type GetJobContext,
 	ResumeExtractionKind,
 	type ScrapeContext,
 } from './scraper.types';
 
-const jobs = new Map<string, EventEmitter>();
+const jobs = new Map<string, JobState>();
 
 export const startJobScraping = factory.createHandlers(
 	async (c: ScrapeContext) => {
@@ -27,17 +25,25 @@ export const startJobScraping = factory.createHandlers(
 					kind: ResumeExtractionKind.RAW_JOB_ADVERTISEMENT,
 				};
 
-		const eventEmitter = new EventEmitter();
-		jobs.set(jobId, eventEmitter);
-		startScraperWorker(resumeExtractionObject, eventEmitter);
+		jobs.set(jobId, { status: 'pending' });
+		startScraperWorker(resumeExtractionObject, (state) =>
+			jobs.set(jobId, state),
+		);
 		return c.json({ jobId });
 	},
 );
 
-export const scrapeJobDetails = factory.createHandlers(
+export const getJobScrapingProgressByJobID = factory.createHandlers(
 	async (c: GetJobContext) => {
 		const { jobId } = c.req.valid('param');
-		const emitter = jobs.get(jobId);
-		return c.json({ jobId }, 200);
+		const job = jobs.get(jobId);
+
+		if (!job) return c.json({ error: 'Job not found' }, 404);
+
+		if (job.status === 'done' || job.status === 'error') {
+			jobs.delete(jobId);
+		}
+
+		return c.json(job);
 	},
 );

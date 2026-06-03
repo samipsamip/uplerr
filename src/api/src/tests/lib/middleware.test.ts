@@ -85,3 +85,27 @@ describe('authMiddleWare — happy path', () => {
 		expect(body.profileId).toBe('profile-1');
 	});
 });
+
+describe('authMiddleWare — banned user', () => {
+	it('returns 403 with the ban_reason when the profile is banned', async () => {
+		dbMocks.selectReturn.mockResolvedValue([
+			{ ...fakeProfile, is_banned: true, ban_reason: 'Spam' },
+		]);
+		const res = await app.request('/test');
+		expect(res.status).toBe(403);
+		const body = await res.json();
+		expect(body.message).toBe('Spam');
+		expect(body.code).toBe('BANNED');
+	});
+
+	it('returns 403 with the default message when ban_reason is null', async () => {
+		dbMocks.selectReturn.mockResolvedValue([
+			{ ...fakeProfile, is_banned: true, ban_reason: null },
+		]);
+		const res = await app.request('/test');
+		expect(res.status).toBe(403);
+		const body = await res.json();
+		expect(body.message).toContain('suspended');
+		expect(body.code).toBe('BANNED');
+	});
+});

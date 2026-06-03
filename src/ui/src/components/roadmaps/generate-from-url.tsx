@@ -1,8 +1,15 @@
+import type { FieldErrors, UseFormRegister } from 'react-hook-form';
+
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import type { RoadmapFormValues } from './create-roadmap-modal';
 
-const GenerateRoadmapFromURL = () => {
+type Props = {
+	register: UseFormRegister<RoadmapFormValues>;
+	errors: FieldErrors<RoadmapFormValues>;
+};
+
+const GenerateRoadmapFromURL = ({ register, errors }: Props) => {
 	return (
 		<div className="flex flex-col gap-2">
 			<Label htmlFor="job-url">Job Listing URL</Label>
@@ -15,15 +22,13 @@ const GenerateRoadmapFromURL = () => {
 				type="url"
 				placeholder="https://..."
 				className="bg-muted/40 border-border/50 w-full"
+				{...register('jobDescriptionURL')}
 			/>
-			<Label htmlFor="job-description-extracted">
-				Extracted Job Description
-			</Label>
-			<Textarea
-				id="job-description-extracted"
-				className="bg-muted/40 border-border/50 max-h-[140px] w-full resize-none overflow-auto"
-				disabled
-			/>
+			{errors.jobDescriptionURL && (
+				<p className="text-destructive text-xs">
+					{errors.jobDescriptionURL.message}
+				</p>
+			)}
 		</div>
 	);
 };

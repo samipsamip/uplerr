@@ -379,6 +379,47 @@ describe('PATCH /api/profile/resume', () => {
 		).toBe('New Name');
 	});
 
+	it('triggers skills upsert when structuredData has non-empty skill arrays', async () => {
+		await db.insert(cvProfileSchema).values({
+			profile_id: profileId,
+			original_filename: 'cv.pdf',
+			structured_data: {},
+			is_active: true,
+		});
+
+		const updatedData = {
+			extraction: {
+				full_name: 'Test',
+				contact_details: {
+					email: null,
+					phone: null,
+					location: null,
+					linkedin: null,
+					vcs_platform: null,
+					vcs_url: null,
+					portfolio: null,
+				},
+				professional_summary: null,
+				work_history: [],
+				education: [],
+				certifications: [],
+				notable_achievements: [],
+			},
+			skills: {
+				technical_skills: [
+					{ name: 'TypeScript', level: 'expert', years_of_experience: 3 },
+				],
+				tools_platforms: [],
+				spoken_languages: [],
+				soft_skills: [],
+			},
+			projects: { projects: [] },
+		};
+
+		const res = await makeVerifyRequest({ structuredData: updatedData });
+		expect(res.status).toBe(200);
+	});
+
 	it('only verifies the active CV, not inactive ones', async () => {
 		await db.insert(cvProfileSchema).values([
 			{

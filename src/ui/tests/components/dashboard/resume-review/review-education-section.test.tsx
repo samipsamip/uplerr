@@ -156,3 +156,59 @@ describe('ReviewEducationSection — add entry', () => {
 		expect(degreeInputs.length).toBeGreaterThan(2);
 	});
 });
+
+describe('ReviewEducationSection — field-level edits', () => {
+	it('updates institution field', async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<ReviewEducationSection education={education} onChange={vi.fn()} />,
+		);
+		const editButtons = screen.getAllByRole('button', { name: /edit/i });
+		await user.click(editButtons[0]);
+		const institutionInput = screen.getByDisplayValue('Tech University');
+		await user.clear(institutionInput);
+		await user.type(institutionInput, 'MIT');
+		expect(screen.getByDisplayValue('MIT')).toBeInTheDocument();
+	});
+
+	it('updates field_of_study field', async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<ReviewEducationSection education={education} onChange={vi.fn()} />,
+		);
+		const editButtons = screen.getAllByRole('button', { name: /edit/i });
+		await user.click(editButtons[0]);
+		const fieldInput = screen.getByDisplayValue('Computer Science');
+		await user.clear(fieldInput);
+		await user.type(fieldInput, 'Software Engineering');
+		expect(
+			screen.getByDisplayValue('Software Engineering'),
+		).toBeInTheDocument();
+	});
+
+	it('updates start_date field', async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<ReviewEducationSection education={education} onChange={vi.fn()} />,
+		);
+		const editButtons = screen.getAllByRole('button', { name: /edit/i });
+		await user.click(editButtons[0]);
+		const startInput = screen.getByDisplayValue('Sep 2016');
+		await user.clear(startInput);
+		await user.type(startInput, 'Sep 2017');
+		expect(screen.getByDisplayValue('Sep 2017')).toBeInTheDocument();
+	});
+
+	it('updates end_date field', async () => {
+		const user = userEvent.setup();
+		renderWithProviders(
+			<ReviewEducationSection education={education} onChange={vi.fn()} />,
+		);
+		const editButtons = screen.getAllByRole('button', { name: /edit/i });
+		await user.click(editButtons[0]);
+		const endInput = screen.getByDisplayValue('2020');
+		await user.clear(endInput);
+		await user.type(endInput, '2021');
+		expect(screen.getByDisplayValue('2021')).toBeInTheDocument();
+	});
+});
