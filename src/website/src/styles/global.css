@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-navy: #0a1b33;
+	--color-orange: #e15c23;
+	--color-apricot: #ffeae1;
+	--color-surface: #fafafa;
+	--color-border: #e8eaed;
+	--color-muted: #6b7280;
+
+	--font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+	--radius-card: 16px;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	font-family: var(--font-family-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	color: var(--color-navy);
+	background: #ffffff;
+}

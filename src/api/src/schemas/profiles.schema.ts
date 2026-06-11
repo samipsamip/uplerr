@@ -15,6 +15,7 @@ export const profileSchema = pgTable('user_profiles', {
 	updated_at: timestamp('updated_at', { withTimezone: true })
 		.defaultNow()
 		.notNull(),
+	is_approved: boolean('is_approved').default(false).notNull(),
 	is_banned: boolean('is_banned').default(false).notNull(),
 	ban_reason: text('ban_reason'),
 	deleted_at: timestamp('deleted_at', { withTimezone: true }),

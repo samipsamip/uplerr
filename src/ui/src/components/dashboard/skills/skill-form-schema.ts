@@ -15,8 +15,8 @@ export type SkillLevel = (typeof SKILL_LEVELS)[number];
 
 export const skillFormSchema = z.object({
 	name: z.string().min(1, 'Skill name is required').max(100),
-	category: z.enum(SKILL_CATEGORIES, { error: 'Please select a category' }),
-	level: z.enum(SKILL_LEVELS, { error: 'Please select an experience level' }),
+	category: z.enum(SKILL_CATEGORIES, { message: 'Please select a category' }),
+	level: z.enum(SKILL_LEVELS, { message: 'Please select an experience level' }),
 });
 
 export type SkillFormValues = z.infer<typeof skillFormSchema>;

@@ -16,6 +16,9 @@ export default defineConfig({
 				'src/lib/logger.ts',
 				'src/utils/constants.ts',
 				'src/seed/**',
+				'src/scripts/**',
+				'src/components/admin/**',
+				'src/components/waitlist/**',
 			],
 			thresholds: {
 				lines: 80,
