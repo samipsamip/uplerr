@@ -4,7 +4,7 @@ set -euo pipefail
 
 if [[ "${NODE_ENV:-}" == "production" ]]; then
   pnpm --filter @uppler/api run db:migrate
-  pnpm --filter @uppler/api run db:seed
+  pnpm --filter @uppler/api run db:seed:prod
   exec pnpm --filter @uppler/api run start
 else
   pnpm --filter @uppler/api run db:generate
