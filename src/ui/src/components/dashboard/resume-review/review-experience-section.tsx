@@ -25,7 +25,21 @@ function formatDateRange(entry: WorkEntry): string {
 	return `${start} – ${end}`;
 }
 
-function ConfidenceBadge({ state }: { state: ConfidenceState }) {
+function ConfidenceBadge({
+	state,
+	isManual,
+}: {
+	state: ConfidenceState;
+	isManual?: boolean;
+}) {
+	if (isManual) {
+		return (
+			<span className="text-muted-foreground/50 flex items-center gap-1 text-xs">
+				<Pencil className="size-3" />
+				Added manually
+			</span>
+		);
+	}
 	if (state === 'good') {
 		return (
 			<span className="flex items-center gap-1 text-xs text-emerald-600/70 dark:text-emerald-500/70">
@@ -65,12 +79,14 @@ function ExperienceEntry({
 	onRemove,
 	isLast,
 	autoEdit,
+	isManual,
 }: {
 	entry: WorkEntry;
 	onUpdate: (updated: WorkEntry) => void;
 	onRemove: () => void;
 	isLast: boolean;
 	autoEdit?: boolean;
+	isManual?: boolean;
 }) {
 	const [editing, setEditing] = useState(autoEdit ?? false);
 	const [draft, setDraft] = useState(entry);
@@ -269,7 +285,7 @@ function ExperienceEntry({
 						</p>
 					</div>
 					<div className="flex shrink-0 items-center gap-2 pt-0.5">
-						<ConfidenceBadge state={confidence} />
+						<ConfidenceBadge state={confidence} isManual={isManual} />
 						<div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/entry:opacity-100">
 							<Button
 								type="button"
@@ -372,6 +388,7 @@ export function ReviewExperienceSection({
 					onRemove={() => remove(i)}
 					isLast={i === experience.length - 1}
 					autoEdit={i === newIndex}
+					isManual={i === newIndex}
 				/>
 			))}
 			<Button

@@ -474,3 +474,36 @@ describe('ResumeExtractionFSM — UPLOAD_TO_CLOUD errors', () => {
 		expect(dbMocks.values).not.toHaveBeenCalled();
 	});
 });
+
+describe('ResumeExtractionFSM — error target edge cases', () => {
+	it('transitions to ERROR state when RESUME_PARSE throws a generic error', async () => {
+		// A plain Error (not ResumeValidationError / ResumeExtractionError) triggers the
+		// final branch of the RESUME_PARSE error target.
+		pdfParserMock.parse.mockRejectedValue(
+			new Error('Unexpected parse failure'),
+		);
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.ERROR);
+	});
+
+	it('transitions to ERROR state when DUPLICATE_CHECK throws a generic error', async () => {
+		// A plain Error (not ResumeDuplicateError) triggers the final branch of the
+		// DUPLICATE_CHECK error target.
+		dbMocks.whereReturn.mockResolvedValue(undefined);
+		dbMocks.limitReturn.mockRejectedValue(new Error('DB connection failed'));
+
+		const machine = createResumeExtractionFSM(defaultInput);
+		await machine.run();
+
+		expect(machine.value).toBe(ResumeTransitionState.ERROR);
+	});
+
+	it('structuredData getter returns null before the machine has run', () => {
+		const machine = createResumeExtractionFSM(defaultInput);
+		// ctx is empty at construction time → getter hits the null-guard branch
+		expect(machine.structuredData).toBeNull();
+	});
+});

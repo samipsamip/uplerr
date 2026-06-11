@@ -168,6 +168,16 @@ const SkillItem = z
 	})
 	.strict();
 
+const SkillLevel = z.enum(['beginner', 'intermediate', 'advanced', 'expert']);
+
+const LeveledSkillItem = z
+	.object({
+		name: z.string().min(1).trim(),
+		source: SkillSource,
+		level: SkillLevel.default('intermediate'),
+	})
+	.strict();
+
 /**
  * Skill array with dedupe
  */
@@ -188,13 +198,30 @@ const SkillArray = z
 		});
 	});
 
+const LeveledSkillArray = z
+	.array(LeveledSkillItem)
+	.default([])
+	.transform((arr) => {
+		const seen = new Set<string>();
+
+		return arr.filter((item) => {
+			const key = `${item.name.toLowerCase()}::${item.source}`;
+
+			if (seen.has(key)) return false;
+
+			seen.add(key);
+
+			return true;
+		});
+	});
+
 /**
  * Skill extraction schema
  */
 export const SkillExtractionSchema = z
 	.object({
-		technical_skills: SkillArray,
-		tools_platforms: SkillArray,
+		technical_skills: LeveledSkillArray,
+		tools_platforms: LeveledSkillArray,
 		spoken_languages: SkillArray,
 		soft_skills: SkillArray,
 	})
@@ -242,6 +269,75 @@ export const ModerationReturnSchema = z
 		reason: z.string(),
 	})
 	.strict();
+/**
+ * Job description required skills extraction schema
+ */
+export const JobDescriptionSkillsExtractionSchema = z
+	.object({
+		company: z.string().nullable(),
+		job_title: z.string().nullable(),
+		skills_required: z
+			.array(
+				z.object({
+					name: z.string(),
+					level: z.enum(['beginner', 'intermediate', 'advanced', 'expert']),
+				}),
+			)
+			.default([]),
+	})
+	.strict();
+/**
+ * Job analysis result — returned to client after scraper step 1 (skill extraction + compatibility)
+ */
+export const JobAnalysisResultSchema = z
+	.object({
+		company: z.string().nullable(),
+		job_title: z.string().nullable(),
+		skills: z.array(
+			z.object({
+				name: z.string(),
+				required_level: z.enum([
+					'beginner',
+					'intermediate',
+					'advanced',
+					'expert',
+				]),
+				user_level: z.string(),
+			}),
+		),
+	})
+	.strict();
+
+const UserResourceSchema = z.object({
+	title: z.string(),
+	url: z.string(),
+});
+
+const SubtopicSchema = z.object({
+	title: z.string(),
+	description: z.string(),
+	search_queries: z.array(z.string()),
+	user_resources: z.array(UserResourceSchema).optional(),
+});
+
+const TopicSchema = z.object({
+	title: z.string(),
+	order: z.number(),
+	rationale: z.string(),
+	estimated_weeks: z.number(),
+	subtopics: z.array(SubtopicSchema),
+});
+
+/**
+ * Roadmap curriculum — topic-based output from the learning advisor LLM.
+ */
+export const RoadmapCurriculumSchema = z
+	.object({
+		summary: z.string(),
+		estimated_weeks: z.number(),
+		topics: z.array(TopicSchema),
+	})
+	.strict();
 
 /**
  * Types
@@ -251,6 +347,15 @@ export type SkillExtractionType = z.infer<typeof SkillExtractionSchema>;
 export type ProjectExtractionType = z.infer<typeof ProjectExtractionSchema>;
 export type ValidResumeType = z.infer<typeof ValidResumeReturnSchema>;
 export type ResumeModerationType = z.infer<typeof ModerationReturnSchema>;
+export type JobDescriptionModerationType = z.infer<
+	typeof ModerationReturnSchema
+>;
+export type JobDescriptionSkillsExtractionType = z.infer<
+	typeof JobDescriptionSkillsExtractionSchema
+>;
+export type JobAnalysisResultType = z.infer<typeof JobAnalysisResultSchema>;
+export type RoadmapCurriculumType = z.infer<typeof RoadmapCurriculumSchema>;
+export type UserResourceType = z.infer<typeof UserResourceSchema>;
 
 /**
  * Combined structured output

@@ -89,3 +89,27 @@ describe('DurationRangePicker — popover', () => {
 		});
 	});
 });
+
+describe('DurationRangePicker — bare year and edge cases', () => {
+	it('parses a bare year value without throwing', () => {
+		renderWithProviders(
+			<DurationRangePicker value="2022 – Present" onChange={vi.fn()} />,
+		);
+		// Bare year "2022" should be parsed without error
+		expect(screen.getByRole('button')).toBeInTheDocument();
+	});
+
+	it('handles a single-part value (no separator)', () => {
+		renderWithProviders(
+			<DurationRangePicker value="Jan 2022" onChange={vi.fn()} />,
+		);
+		expect(screen.getByRole('button')).toBeInTheDocument();
+	});
+
+	it('handles an unparseable date string gracefully', () => {
+		renderWithProviders(
+			<DurationRangePicker value="invalid – also invalid" onChange={vi.fn()} />,
+		);
+		expect(screen.getByRole('button')).toBeInTheDocument();
+	});
+});

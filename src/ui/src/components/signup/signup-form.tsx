@@ -38,7 +38,7 @@ export function SignupForm({
 				name: `${data.firstName} ${data.lastName}`,
 				email: data.email,
 				password: data.password,
-				callbackURL: 'http://localhost:5173/dashboard',
+				callbackURL: `${window.location.origin}/login?verified=true`,
 			},
 			{
 				onSuccess: () => {

@@ -7,6 +7,7 @@ import {
 	ResumeTransitionState,
 } from '../../lib/fsm/ResumeExtractionFSM';
 import { cvProfileSchema } from '../../schemas/cv_profiles.schema';
+import type { SkillLevel } from '../../schemas/skill-enums.schema';
 import db from '../../utils/db';
 import {
 	ResumeModerationError,
@@ -21,13 +22,26 @@ import {
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
-function flattenSkillNames(skills: SkillExtractionType): string[] {
+function flattenSkills(
+	skills: SkillExtractionType,
+): Array<{ name: string; level: string }> {
 	return [
-		...skills.technical_skills,
-		...skills.tools_platforms,
-		...skills.spoken_languages,
-		...skills.soft_skills,
-	].map((s) => s.name);
+		...skills.technical_skills.map((s) => ({
+			name: s.name,
+			level:
+				(('level' in s ? s.level : null) as string | null) ?? 'intermediate',
+		})),
+		...skills.tools_platforms.map((s) => ({
+			name: s.name,
+			level:
+				(('level' in s ? s.level : null) as string | null) ?? 'intermediate',
+		})),
+		...skills.spoken_languages.map((s) => ({
+			name: s.name,
+			level: 'intermediate',
+		})),
+		...skills.soft_skills.map((s) => ({ name: s.name, level: 'intermediate' })),
+	];
 }
 
 export const getUserProfile = factory.createHandlers(async (c) => {
@@ -200,14 +214,20 @@ export const verifyUserResume = factory.createHandlers(async (c) => {
 			.where(eq(cvProfileSchema.id, active.id));
 
 		if (structuredData?.skills) {
-			const rawSkillNames = flattenSkillNames(structuredData.skills);
-			if (rawSkillNames.length > 0) {
-				const normalized = await normalizeExtractedSkills(rawSkillNames);
+			const flatSkills = flattenSkills(structuredData.skills);
+			if (flatSkills.length > 0) {
+				const levelByName = new Map(
+					flatSkills.map((s) => [s.name.toLowerCase(), s.level]),
+				);
+				const normalized = await normalizeExtractedSkills(
+					flatSkills.map((s) => s.name),
+				);
 				const skillsToUpsert = normalized.map((s) => ({
 					canonicalName: s.canonicalName,
 					canonicalId: s.canonicalId,
 					category: s.category,
-					level: 'intermediate' as const,
+					level: (levelByName.get(s.rawName.toLowerCase()) ??
+						'intermediate') as SkillLevel,
 				}));
 				await upsertCvExtractionSkills(profileId, skillsToUpsert);
 			}

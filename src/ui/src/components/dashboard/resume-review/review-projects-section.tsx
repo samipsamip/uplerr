@@ -52,6 +52,8 @@ function ProjectCard({
 }: ProjectCardProps) {
 	const [editing, setEditing] = useState(defaultEditing);
 	const [draft, setDraft] = useState<Project>(project);
+	const [techRaw, setTechRaw] = useState(project.technologies.join(', '));
+	const [linksRaw, setLinksRaw] = useState(project.links.join('\n'));
 	const [error, setError] = useState<string | null>(null);
 
 	const save = () => {
@@ -64,12 +66,24 @@ function ProjectCard({
 			return;
 		}
 		setError(null);
-		onSave(draft);
+		onSave({
+			...draft,
+			technologies: techRaw
+				.split(',')
+				.map((t) => t.trim())
+				.filter(Boolean),
+			links: linksRaw
+				.split('\n')
+				.map((l) => l.trim())
+				.filter(Boolean),
+		});
 		setEditing(false);
 	};
 
 	const discard = () => {
 		setDraft(project);
+		setTechRaw(project.technologies.join(', '));
+		setLinksRaw(project.links.join('\n'));
 		setError(null);
 		setEditing(false);
 	};
@@ -97,16 +111,8 @@ function ProjectCard({
 						Technologies (comma-separated)
 					</p>
 					<Input
-						value={draft.technologies.join(', ')}
-						onChange={(e) =>
-							setDraft((d) => ({
-								...d,
-								technologies: e.target.value
-									.split(',')
-									.map((t) => t.trim())
-									.filter(Boolean),
-							}))
-						}
+						value={techRaw}
+						onChange={(e) => setTechRaw(e.target.value)}
 						placeholder="React, TypeScript, Docker…"
 						className="text-sm"
 					/>
@@ -116,16 +122,8 @@ function ProjectCard({
 						Links (one per line)
 					</p>
 					<Textarea
-						value={draft.links.join('\n')}
-						onChange={(e) =>
-							setDraft((d) => ({
-								...d,
-								links: e.target.value
-									.split('\n')
-									.map((l) => l.trim())
-									.filter(Boolean),
-							}))
-						}
+						value={linksRaw}
+						onChange={(e) => setLinksRaw(e.target.value)}
 						placeholder="https://github.com/…"
 						rows={2}
 						className="resize-none text-sm"

@@ -4,7 +4,7 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"dev": "turbo run dev --filter=@uppler/api & wait-on tcp:localhost:3000 && turbo run dev --filter=@uppler/ui",
+		"dev": "turbo run dev --filter=@uppler/ui",
 		"build": "turbo run build",
 		"lint": "turbo run lint",
 		"typecheck": "turbo run typecheck",
@@ -30,12 +30,11 @@
 		"eslint-plugin-react-hooks": "^5.2.0",
 		"eslint-plugin-simple-import-sort": "^13.0.0",
 		"husky": "^9.1.7",
-		"lint-staged": "^17.0.5",
+		"lint-staged": "^17.0.7",
 		"prettier": "^3.8.3",
 		"prettier-plugin-tailwindcss": "^0.6.14",
 		"turbo": "^2.9.16",
-		"typescript-eslint": "^8.60.0",
-		"wait-on": "^9.0.10"
+		"typescript-eslint": "^8.60.0"
 	},
 	"packageManager": "pnpm@10.0.0"
 }

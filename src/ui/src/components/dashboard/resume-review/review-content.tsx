@@ -28,10 +28,43 @@ interface ReviewContentProps {
 	skillMatchMeta?: SkillMatchMeta;
 }
 
+function normalizeInitial(raw: CvStructuredData): CvStructuredData {
+	const e = raw.extraction ?? {};
+	const s = raw.skills ?? {};
+	return {
+		...raw,
+		extraction: {
+			full_name: e.full_name ?? null,
+			contact_details: e.contact_details ?? {
+				email: null,
+				phone: null,
+				location: null,
+				linkedin: null,
+				portfolio: null,
+				vcs_platform: null,
+				vcs_url: null,
+			},
+			professional_summary: e.professional_summary ?? null,
+			work_history: e.work_history ?? [],
+			education: e.education ?? [],
+			certifications: e.certifications ?? [],
+			notable_achievements: e.notable_achievements ?? [],
+		},
+		skills: {
+			technical_skills: s.technical_skills ?? [],
+			tools_platforms: s.tools_platforms ?? [],
+			spoken_languages: s.spoken_languages ?? [],
+			soft_skills: s.soft_skills ?? [],
+		},
+	};
+}
+
 export function ReviewContent({ initial, skillMatchMeta }: ReviewContentProps) {
 	const navigate = useNavigate();
 	const { mutateAsync, isPending } = useVerifyResume();
-	const [data, setData] = useState<CvStructuredData>(initial);
+	const [data, setData] = useState<CvStructuredData>(() =>
+		normalizeInitial(initial),
+	);
 
 	const setExtraction = <K extends keyof CvStructuredData['extraction']>(
 		key: K,

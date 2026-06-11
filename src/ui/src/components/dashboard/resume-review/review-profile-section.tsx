@@ -122,7 +122,15 @@ export function ReviewProfileSection({
 			},
 		});
 
-	const cd = data.contact_details;
+	const cd = data.contact_details ?? {
+		email: null,
+		phone: null,
+		location: null,
+		linkedin: null,
+		portfolio: null,
+		vcs_platform: null,
+		vcs_url: null,
+	};
 
 	return (
 		<div className="flex gap-4">

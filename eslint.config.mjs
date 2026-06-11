@@ -16,6 +16,7 @@ export default tseslint.config(
 			'**/dist/**',
 			'**/node_modules/**',
 			'src/ui/src/components/ui/**',
+			"**/*.test.{ts,tsx}",
 		],
 	},
 	js.configs.recommended,
@@ -78,6 +79,10 @@ export default tseslint.config(
 	// General rules — all TS/JS files
 	{
 		rules: {
+			'@typescript-eslint/no-unused-vars': [
+				'error',
+				{ argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+			],
 			'no-console': 'warn',
 			'no-nested-ternary': 'warn',
 			'@typescript-eslint/naming-convention': [

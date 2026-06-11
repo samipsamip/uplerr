@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Controller,useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -81,7 +81,7 @@ export function EditSkillDialog({
 					toast.success('Skill updated.');
 					handleClose(false);
 				},
-				onError: (err) => toast.error(err.message),
+				onError: () => toast.error('Failed to update skill. Please try again.'),
 			},
 		);
 	};
@@ -92,7 +92,7 @@ export function EditSkillDialog({
 				toast.success('Skill removed.');
 				handleClose(false);
 			},
-			onError: (err) => toast.error(err.message),
+			onError: () => toast.error('Failed to remove skill. Please try again.'),
 		});
 	};
 

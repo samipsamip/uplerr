@@ -1,4 +1,4 @@
-import { Controller,useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -59,7 +59,7 @@ export default function AddSkillsDialog({
 				reset();
 				onOpenDialog(false);
 			},
-			onError: (err) => toast.error(err.message),
+			onError: () => toast.error('Failed to add skill. Please try again.'),
 		});
 	};
 

@@ -1,4 +1,5 @@
 import {
+	integer,
 	jsonb,
 	pgEnum,
 	pgTable,
@@ -26,6 +27,8 @@ export const studyPlanSchema = pgTable('study_plans', {
 	job_ad_text: text('job_ad_text'),
 	job_title: text('job_title'),
 	company: text('company'),
+	weekly_hours: integer('weekly_hours').notNull().default(10),
+	timeline_target: text('timeline_target'),
 	extracted_skills: jsonb('extracted_skills').notNull(),
 	status: studyPlanStatusEnum('status').notNull().default('active'),
 	created_at: timestamp('created_at', { withTimezone: true })
