@@ -1,1 +1,0 @@
-ALTER TABLE "cv_profiles" ADD COLUMN "is_verified" boolean;
