@@ -106,7 +106,11 @@ describe('GET /:jobId/stream', () => {
 	it('cleans up a done job after it is polled', async () => {
 		let capturedOnUpdate: ((state: unknown) => void) | undefined;
 		workerMock.startScraperWorker.mockImplementation(
-			(_payload: unknown, onUpdate: (state: unknown) => void) => {
+			(
+				_payload: unknown,
+				_profileId: unknown,
+				onUpdate: (state: unknown) => void,
+			) => {
 				capturedOnUpdate = onUpdate;
 			},
 		);

@@ -26,27 +26,20 @@ const { default: DashboardMain } =
 describe('DashboardMain', () => {
 	it('renders a greeting with the user first name', () => {
 		renderWithProviders(<DashboardMain />);
-		// getFirstName('Test User') = 'Test', greeting = 'Good {morning|afternoon|evening}'
 		expect(screen.getByText(/Test/)).toBeInTheDocument();
 	});
 
-	it('renders stat card labels', () => {
+	it('renders all four stat card labels', () => {
 		renderWithProviders(<DashboardMain />);
-		// The stat label appears in the card body (not in the section heading)
 		expect(screen.getAllByText('Active Roadmaps').length).toBeGreaterThan(0);
-		expect(screen.getByText('Avg. Progress')).toBeInTheDocument();
-		expect(screen.getByText('Skills Gap')).toBeInTheDocument();
+		expect(screen.getByText('Completed')).toBeInTheDocument();
+		expect(screen.getByText('Skills in Profile')).toBeInTheDocument();
+		expect(screen.getByText('Skills to Develop')).toBeInTheDocument();
 	});
 
-	it('renders the onboarding section', () => {
+	it('renders the onboarding section when no data', () => {
 		renderWithProviders(<DashboardMain />);
 		expect(screen.getByText('Get started with Uplerr')).toBeInTheDocument();
-	});
-
-	it('renders the roadmap cards', () => {
-		renderWithProviders(<DashboardMain />);
-		expect(screen.getByText('Senior Frontend Engineer')).toBeInTheDocument();
-		expect(screen.getByText('Full Stack Developer')).toBeInTheDocument();
 	});
 
 	it('renders a New Roadmap action button', () => {

@@ -10,6 +10,7 @@ const jobs = new Map<string, JobState>();
 
 export const startJobScraping = factory.createHandlers(
 	async (c: ScrapeContext) => {
+		const profileId = c.get('profileId');
 		const payload = c.req.valid('json');
 		const jobId = crypto.randomUUID();
 		const { hasUrl } = payload;
@@ -26,7 +27,7 @@ export const startJobScraping = factory.createHandlers(
 				};
 
 		jobs.set(jobId, { status: 'pending' });
-		startScraperWorker(resumeExtractionObject, (state) =>
+		startScraperWorker(resumeExtractionObject, profileId, (state) =>
 			jobs.set(jobId, state),
 		);
 		return c.json({ jobId });

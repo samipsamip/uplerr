@@ -1,9 +1,13 @@
+import type { JobAnalysisResultType } from '@uppler/types';
+
 import { api } from './client';
+
+export type { JobAnalysisResultType };
 
 export type JobState =
 	| { status: 'pending' }
 	| { status: 'processing'; stage: string }
-	| { status: 'done'; content: string }
+	| { status: 'done'; result: JobAnalysisResultType }
 	| { status: 'error'; code: string; message: string };
 
 type StartScrapingPayload =

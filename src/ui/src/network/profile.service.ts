@@ -10,12 +10,8 @@ export type UserProfile = {
 		is_verified: boolean;
 		structuredData: CvStructuredData | null;
 	} | null;
-	cv_generations_used: number;
 	full_name: string;
 	id: string;
-	study_plans_used: number;
-	subscription_tier: 'free' | 'pro' | 'premium';
-	usage_reset_at: string | null;
 };
 
 export type SkillMatchMeta = { matched: number; total: number };

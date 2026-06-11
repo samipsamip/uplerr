@@ -40,7 +40,7 @@ describe('ProductEmail.sendVerificationEmail', () => {
 		);
 	});
 
-	it('does not throw when send returns an error', async () => {
+	it('throws when send returns an error', async () => {
 		resendMocks.send.mockResolvedValue({
 			error: { message: 'Delivery failed' },
 		});
@@ -50,7 +50,7 @@ describe('ProductEmail.sendVerificationEmail', () => {
 				'john@example.com',
 				'https://url',
 			),
-		).resolves.toBeUndefined();
+		).rejects.toThrow('Failed to send verification email: Delivery failed');
 	});
 
 	it('does not throw when send rejects', async () => {
@@ -87,7 +87,7 @@ describe('ProductEmail.sendResetPasswordEmail', () => {
 		);
 	});
 
-	it('does not throw when send returns an error', async () => {
+	it('throws when send returns an error', async () => {
 		resendMocks.send.mockResolvedValue({
 			error: { message: 'Delivery failed' },
 		});
@@ -97,6 +97,6 @@ describe('ProductEmail.sendResetPasswordEmail', () => {
 				'jane@example.com',
 				'https://url',
 			),
-		).resolves.toBeUndefined();
+		).rejects.toThrow('Failed to send password reset email: Delivery failed');
 	});
 });

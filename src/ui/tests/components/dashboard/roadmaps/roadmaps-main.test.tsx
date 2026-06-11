@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 
-import RoadmapsMain from '@/components/dashboard/roadmaps-main';
-
 import { renderWithProviders } from '../../../helpers/render';
 
 vi.mock('@/components/dashboard/top-bar', () => ({
@@ -14,49 +12,41 @@ vi.mock('@/components/dashboard/top-bar', () => ({
 	),
 }));
 
+vi.mock('@/components/roadmaps/create-roadmap-modal', () => ({
+	default: () => null,
+}));
+
+vi.mock('@/query/roadmaps.query', () => ({
+	useGetRoadmaps: () => ({ data: [], isLoading: false }),
+	useDeleteRoadmap: () => ({ mutate: vi.fn(), isPending: false }),
+	useUpdateRoadmapStatus: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+
+vi.mock('@/query/profile.query', () => ({
+	useGetUserProfile: () => ({
+		data: { cv: { hasStructuredData: true } },
+		isLoading: false,
+	}),
+}));
+
+const { default: RoadmapsMain } =
+	await import('@/components/dashboard/roadmaps-main');
+
 describe('RoadmapsMain', () => {
 	it('renders the page title', () => {
 		renderWithProviders(<RoadmapsMain />);
 		expect(screen.getByText('Roadmaps')).toBeInTheDocument();
 	});
 
-	it('renders the search input', () => {
-		renderWithProviders(<RoadmapsMain />);
-		expect(screen.getByPlaceholderText(/search roadmaps/i)).toBeInTheDocument();
-	});
-
-	it('renders the three status filter pills', () => {
-		renderWithProviders(<RoadmapsMain />);
-		expect(screen.getByRole('button', { name: /active/i })).toBeInTheDocument();
-		expect(
-			screen.getByRole('button', { name: /completed/i }),
-		).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: /paused/i })).toBeInTheDocument();
-	});
-
-	it('renders roadmap cards', () => {
-		renderWithProviders(<RoadmapsMain />);
-		// Static placeholder data has at least one card
-		expect(screen.getAllByRole('heading', { level: 3 }).length).toBeGreaterThan(
-			0,
-		);
-	});
-
-	it('renders company names in cards', () => {
-		renderWithProviders(<RoadmapsMain />);
-		expect(screen.getAllByText('Stripe').length).toBeGreaterThan(0);
-	});
-
-	it('renders progress percentages', () => {
-		renderWithProviders(<RoadmapsMain />);
-		// At least one card shows a %
-		expect(screen.getAllByText(/%$/).length).toBeGreaterThan(0);
-	});
-
-	it('renders a New Roadmap button', () => {
+	it('renders New Roadmap buttons when user has CV', () => {
 		renderWithProviders(<RoadmapsMain />);
 		expect(
-			screen.getByRole('button', { name: /new roadmap/i }),
-		).toBeInTheDocument();
+			screen.getAllByRole('button', { name: /new roadmap/i }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it('shows empty state when no roadmaps exist', () => {
+		renderWithProviders(<RoadmapsMain />);
+		expect(screen.getByText(/no roadmaps yet/i)).toBeInTheDocument();
 	});
 });

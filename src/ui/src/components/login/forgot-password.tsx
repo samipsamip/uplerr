@@ -38,7 +38,7 @@ export function ForgotPasswordForm({
 		authClient.requestPasswordReset(
 			{
 				email: data.email,
-				redirectTo: 'http://localhost:5173/reset-password',
+				redirectTo: `${window.location.origin}/reset-password`,
 			},
 			{
 				onSuccess: () => {

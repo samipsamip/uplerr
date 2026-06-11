@@ -19,10 +19,6 @@ export const mockProfile = {
 		hasStructuredData: boolean;
 		uploadedAt: string;
 	},
-	cv_generations_used: 0,
-	study_plans_used: 0,
-	subscription_tier: 'free' as const,
-	usage_reset_at: null as string | null,
 };
 
 export const handlers = [

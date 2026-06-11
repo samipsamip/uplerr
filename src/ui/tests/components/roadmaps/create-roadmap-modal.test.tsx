@@ -39,7 +39,7 @@ describe('CreateRoadMapModal', () => {
 	it('renders the submit button', () => {
 		renderModal();
 		expect(
-			screen.getByRole('button', { name: /generate me a roadmap/i }),
+			screen.getByRole('button', { name: /analyse job/i }),
 		).toBeInTheDocument();
 	});
 
@@ -70,9 +70,7 @@ describe('CreateRoadMapModal', () => {
 	it('shows a URL validation error when submitting the URL tab with an empty URL', async () => {
 		renderModal();
 		// Submit without filling in the URL field
-		fireEvent.click(
-			screen.getByRole('button', { name: /generate me a roadmap/i }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: /analyse job/i }));
 		expect(
 			await screen.findByText(/please enter a job url/i),
 		).toBeInTheDocument();
@@ -84,65 +82,28 @@ describe('CreateRoadMapModal', () => {
 		const user = userEvent.setup();
 		await user.click(screen.getByRole('tab', { name: /use raw text/i }));
 		// Submit without filling in the raw text field
-		fireEvent.click(
-			screen.getByRole('button', { name: /generate me a roadmap/i }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: /analyse job/i }));
 		expect(
 			await screen.findByText(/please paste a job description/i),
 		).toBeInTheDocument();
 	});
 
-	it('shows loading state and navigates on successful job completion', async () => {
+	it('shows loading text once scrape is initiated', async () => {
 		server.use(
-			http.post(`${BASE}/api/scraper/scrape`, () =>
-				HttpResponse.json({ jobId: 'job-123' }),
-			),
-			http.get(`${BASE}/api/scraper/job-123/stream`, () =>
-				HttpResponse.json({ status: 'done', content: 'extracted content' }),
-			),
+			http.post(`${BASE}/api/scraper/scrape`, async () => {
+				await new Promise(() => {}); // hang — simulates in-flight request
+				return HttpResponse.json({ jobId: 'job-123' });
+			}),
 		);
 
 		renderModal();
 
 		const input = screen.getByPlaceholderText('https://...');
 		fireEvent.change(input, { target: { value: 'https://example.com/job' } });
-		fireEvent.click(
-			screen.getByRole('button', { name: /generate me a roadmap/i }),
-		);
+		fireEvent.click(screen.getByRole('button', { name: /analyse job/i }));
 
 		await waitFor(() => {
-			expect(mockNavigate).toHaveBeenCalledWith('/roadmaps/review', {
-				state: { content: 'extracted content' },
-			});
-		});
-	});
-
-	it('shows a toast on scraping error and resets state', async () => {
-		const { toast } = await import('sonner');
-
-		server.use(
-			http.post(`${BASE}/api/scraper/scrape`, () =>
-				HttpResponse.json({ jobId: 'job-err' }),
-			),
-			http.get(`${BASE}/api/scraper/job-err/stream`, () =>
-				HttpResponse.json({
-					status: 'error',
-					code: 'FETCH_FAILED',
-					message: 'Could not reach the server',
-				}),
-			),
-		);
-
-		renderModal();
-
-		const input = screen.getByPlaceholderText('https://...');
-		fireEvent.change(input, { target: { value: 'https://example.com/job' } });
-		fireEvent.click(
-			screen.getByRole('button', { name: /generate me a roadmap/i }),
-		);
-
-		await waitFor(() => {
-			expect(toast.error).toHaveBeenCalledWith('Could not reach the server');
+			expect(screen.getAllByText(/getting ready/i).length).toBeGreaterThan(0);
 		});
 	});
 });

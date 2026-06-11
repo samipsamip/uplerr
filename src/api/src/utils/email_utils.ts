@@ -19,9 +19,10 @@ export default class ProductEmail {
 				},
 			},
 		});
-		console.log(error);
-		//TO DO : Add error handling and logging
+		if (error)
+			throw new Error(`Failed to send verification email: ${error.message}`);
 	}
+
 	async sendResetPasswordEmail(
 		fullName: string,
 		email: string,
@@ -37,8 +38,8 @@ export default class ProductEmail {
 				},
 			},
 		});
-		console.log(error);
-		//TO DO : Add error handling and logging
+		if (error)
+			throw new Error(`Failed to send password reset email: ${error.message}`);
 	}
 }
 

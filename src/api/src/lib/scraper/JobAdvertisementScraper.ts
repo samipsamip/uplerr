@@ -524,13 +524,15 @@ export class JobAdvertisementScraper {
 				'HTTP fetch',
 			);
 			onProgress?.('extracting');
-			const clean = sanitizeHtml(html);
 
-			const jsonLd = extractJsonLd(clean);
+			// Extract JSON-LD from raw HTML before sanitizing — DOMPurify strips
+			// <script> tags so calling extractJsonLd on sanitized HTML never works.
+			const jsonLd = extractJsonLd(html);
 			if (jsonLd && meetsQualityThreshold(jsonLd)) {
 				content = jsonLd;
 				source = 'json-ld';
 			} else {
+				const clean = sanitizeHtml(html);
 				const readable = extractWithReadability(clean, url);
 				if (readable && meetsQualityThreshold(readable)) {
 					content = readable;
@@ -554,6 +556,17 @@ export class JobAdvertisementScraper {
 					'Playwright render',
 				);
 				onProgress?.('extracting');
+
+				// Try JSON-LD first even in the Playwright path
+				const jsonLdFallback = extractJsonLd(html);
+				if (jsonLdFallback && meetsQualityThreshold(jsonLdFallback)) {
+					content = jsonLdFallback;
+					source = 'json-ld';
+					const normalized = normalizeText(content);
+					await setCache(hash, url, normalized);
+					return { success: true, content: normalized, source, cached: false };
+				}
+
 				const clean = sanitizeHtml(html);
 				const readable = extractWithReadability(clean, url);
 

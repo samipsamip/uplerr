@@ -16,12 +16,11 @@ import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
 import Dashboard from '@/pages/dashboard/Dashboard';
-import RoadmapReview from '@/pages/dashboard/RoadmapReview';
 import Roadmaps from '@/pages/dashboard/Roadmaps';
+import RoadmapView from '@/pages/dashboard/RoadmapView';
 import Skills from '@/pages/dashboard/Skills';
 import SkillsReview from '@/pages/dashboard/SkillsReview';
 import ErrorPage from '@/pages/ErrorPage';
-import PdfDebugPage from '@/pages/PdfDebugPage';
 
 let _sessionCache: { value: unknown; expiresAt: number } | null = null;
 
@@ -32,7 +31,7 @@ const getSession = async () => {
 	}
 	try {
 		const value = await ky
-			.get('http://localhost:3000/me', {
+			.get(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/me`, {
 				credentials: 'include',
 			})
 			.json();
@@ -108,10 +107,6 @@ const publicRoutes: RouteObject[] = [
 		path: '/signup/success',
 		Component: SignupSuccessPage,
 	},
-	{
-		path: '/pdf-debug',
-		Component: PdfDebugPage,
-	},
 ];
 
 const privateRoutes: RouteObject[] = [
@@ -131,8 +126,8 @@ const privateRoutes: RouteObject[] = [
 				Component: Roadmaps,
 			},
 			{
-				path: 'roadmaps/review',
-				Component: RoadmapReview,
+				path: 'roadmaps/view/:planId',
+				Component: RoadmapView,
 			},
 			{
 				path: 'skills',

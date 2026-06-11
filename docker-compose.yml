@@ -15,3 +15,19 @@ services:
       - ./src/api/.env
     ports:
       - "3000:3000"
+
+  ui:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "corepack enable && corepack prepare pnpm@10.0.0 --activate && pnpm --filter @uppler/ui dev --host"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src/ui/node_modules
+      - /app/src/types/node_modules
+    env_file:
+      - ./src/ui/.env
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api

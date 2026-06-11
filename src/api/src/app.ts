@@ -9,7 +9,6 @@ import skillsRoute from './components/skills/skills.route';
 import { auth } from './lib/auth';
 import { factory } from './lib/factory';
 import { authMiddleWare } from './lib/middleware';
-import pdfParser from './lib/pdf-parser';
 
 export function buildApp() {
 	const app = factory.createApp();
@@ -41,24 +40,6 @@ export function buildApp() {
 	app.route('/api/skills', skillsRoute);
 	app.route('/api/roadmaps', roadMapsRoute);
 	app.route('/api/scraper', scraperRoute);
-
-	app.post('/api/debug/parse-pdf', async (c) => {
-		const formData = await c.req.formData();
-		const file = formData.get('file');
-		if (!file || !(file instanceof File)) {
-			return c.json({ message: 'Please provide a PDF file.' }, 400);
-		}
-		const buffer = new Uint8Array(await file.arrayBuffer());
-		try {
-			const result = await pdfParser.parse(buffer);
-			return c.json(result, 200);
-		} catch (err) {
-			return c.json(
-				{ message: err instanceof Error ? err.message : 'Parse failed.' },
-				400,
-			);
-		}
-	});
 
 	app.use('*', async (c) => c.json({ message: 'Not Found' }, 404));
 	return app;
