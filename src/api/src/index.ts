@@ -6,7 +6,7 @@ import { pool } from './utils/db';
 const server = serve(
 	{
 		fetch: buildApp().fetch,
-		port: 3000,
+		port: Number(process.env.PORT) || 3000,
 	},
 	(info) => {
 		console.log(`Server running on port ${info.port}`);

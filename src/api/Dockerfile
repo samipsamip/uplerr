@@ -38,5 +38,5 @@ COPY --from=builder /app/src/api/dist ./src/api/dist
 COPY src/api/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
-EXPOSE 3000
+EXPOSE 8080
 ENTRYPOINT ["tini", "--", "./entrypoint.sh"]
