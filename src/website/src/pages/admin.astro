@@ -1,0 +1,395 @@
+---
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title="Admin — Uppler">
+  <div id="app" class="min-h-screen bg-navy font-sans">
+
+    <!-- Login -->
+    <div id="login-view" class="flex min-h-screen items-center justify-center px-4">
+      <div class="w-full max-w-sm">
+        <div class="mb-8">
+          <p class="text-2xl font-semibold text-white">
+            uppler<span class="text-orange">.</span>
+            <span class="ml-2 text-base font-normal text-white/40">admin</span>
+          </p>
+          <p class="mt-2 text-sm text-white/40">Sign in to manage access requests.</p>
+        </div>
+
+        <form id="login-form" class="flex flex-col gap-3">
+          <input
+            id="admin-email"
+            type="email"
+            placeholder="Admin email"
+            autocomplete="email"
+            required
+            class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-orange/50 focus:bg-white/8 transition-all"
+          />
+          <input
+            id="admin-token"
+            type="password"
+            placeholder="Token"
+            required
+            class="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-orange/50 transition-all"
+          />
+          <p id="login-error" class="hidden text-sm text-red-400"></p>
+          <button
+            type="submit"
+            class="mt-1 rounded-xl bg-orange py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard-view" class="hidden min-h-screen flex-col">
+
+      <!-- Header -->
+      <header class="border-b border-white/10 px-6 py-4">
+        <div class="mx-auto flex max-w-5xl items-center justify-between">
+          <p class="text-base font-semibold text-white">
+            uppler<span class="text-orange">.</span>
+            <span class="ml-2 text-sm font-normal text-white/40">admin</span>
+          </p>
+          <button
+            id="signout-btn"
+            class="text-sm text-white/40 transition-colors hover:text-white"
+          >
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+
+        <!-- Stats bar -->
+        <div id="stats-bar" class="mb-8 flex gap-6">
+          <div>
+            <p class="text-2xl font-semibold text-white" id="stat-pending">—</p>
+            <p class="text-xs text-white/40 mt-0.5">Pending</p>
+          </div>
+          <div class="w-px bg-white/10"></div>
+          <div>
+            <p class="text-2xl font-semibold text-white" id="stat-approved">—</p>
+            <p class="text-xs text-white/40 mt-0.5">Approved</p>
+          </div>
+          <div class="w-px bg-white/10"></div>
+          <div>
+            <p class="text-2xl font-semibold text-white" id="stat-total">—</p>
+            <p class="text-xs text-white/40 mt-0.5">Total</p>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-6 flex gap-1 rounded-xl border border-white/10 bg-white/5 p-1 w-fit">
+          <button
+            id="tab-pending"
+            data-tab="pending"
+            class="tab-btn rounded-lg px-4 py-2 text-sm font-medium text-white transition-all bg-white/10"
+          >
+            Pending
+          </button>
+          <button
+            id="tab-approved"
+            data-tab="approved"
+            class="tab-btn rounded-lg px-4 py-2 text-sm font-medium text-white/40 transition-all hover:text-white"
+          >
+            Approved
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-hidden rounded-2xl border border-white/10">
+
+          <!-- Loading -->
+          <div id="table-loading" class="px-6 py-12 text-center text-sm text-white/30">
+            Loading users…
+          </div>
+
+          <!-- Empty -->
+          <div id="table-empty" class="hidden px-6 py-12 text-center text-sm text-white/30">
+            No users in this list.
+          </div>
+
+          <!-- Table -->
+          <table id="users-table" class="hidden w-full">
+            <thead>
+              <tr class="border-b border-white/10 text-left text-xs font-medium uppercase tracking-wider text-white/30">
+                <th class="px-6 py-3">Name</th>
+                <th class="px-6 py-3">Email</th>
+                <th class="px-6 py-3">Joined</th>
+                <th class="px-6 py-3">Email verified</th>
+                <th class="px-6 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody" class="divide-y divide-white/5">
+            </tbody>
+          </table>
+
+        </div>
+
+        <!-- Global error -->
+        <p id="global-error" class="mt-4 hidden text-sm text-red-400"></p>
+
+      </main>
+    </div>
+
+  </div>
+</Layout>
+
+<script>
+  const API_URL = import.meta.env.PUBLIC_API_URL ?? '';
+
+  type AdminUser = {
+    userId: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+    isApproved: boolean;
+    isBanned: boolean;
+    joinedAt: string;
+  };
+
+  let allUsers: AdminUser[] = [];
+  let activeTab: 'pending' | 'approved' = 'pending';
+  let adminEmail = '';
+  let adminToken = '';
+
+  function adminHeaders() {
+    return {
+      'Content-Type': 'application/json',
+      'X-Admin-Email': adminEmail,
+      'X-Admin-Token': adminToken,
+    };
+  }
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('users-tbody')!;
+    const table = document.getElementById('users-table')!;
+    const empty = document.getElementById('table-empty')!;
+    const loading = document.getElementById('table-loading')!;
+
+    const filtered = allUsers.filter((u) =>
+      activeTab === 'pending' ? !u.isApproved : u.isApproved,
+    );
+
+    loading.classList.add('hidden');
+
+    if (filtered.length === 0) {
+      table.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    table.classList.remove('hidden');
+
+    tbody.innerHTML = filtered
+      .map(
+        (u) => `
+        <tr class="group text-sm transition-colors hover:bg-white/[0.03]" data-user-id="${u.userId}" data-user-email="${u.email}">
+          <td class="px-6 py-4 font-medium text-white">${u.name}</td>
+          <td class="px-6 py-4 text-white/60">${u.email}</td>
+          <td class="px-6 py-4 text-white/40">${formatDate(u.joinedAt)}</td>
+          <td class="px-6 py-4">
+            ${u.emailVerified
+              ? '<span class="text-green-400 text-xs font-medium">Verified</span>'
+              : '<span class="text-white/30 text-xs">Unverified</span>'
+            }
+          </td>
+          <td class="px-6 py-4 text-right">
+            ${!u.isApproved
+              ? `<button
+                  class="approve-btn rounded-lg bg-orange/10 px-3 py-1.5 text-xs font-semibold text-orange transition-all hover:bg-orange hover:text-white disabled:opacity-40"
+                  data-user-id="${u.userId}"
+                  data-user-email="${u.email}"
+                >
+                  Approve
+                </button>`
+              : '<span class="text-xs text-white/20">Approved</span>'
+            }
+          </td>
+        </tr>
+      `,
+      )
+      .join('');
+
+    document.querySelectorAll('.approve-btn').forEach((btn) => {
+      btn.addEventListener('click', handleApprove);
+    });
+  }
+
+  function updateStats() {
+    const pending = allUsers.filter((u) => !u.isApproved).length;
+    const approved = allUsers.filter((u) => u.isApproved).length;
+    document.getElementById('stat-pending')!.textContent = String(pending);
+    document.getElementById('stat-approved')!.textContent = String(approved);
+    document.getElementById('stat-total')!.textContent = String(allUsers.length);
+  }
+
+  async function loadUsers() {
+    document.getElementById('table-loading')!.classList.remove('hidden');
+    document.getElementById('users-table')!.classList.add('hidden');
+    document.getElementById('table-empty')!.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        headers: adminHeaders(),
+      });
+
+      if (res.status === 403) {
+        sessionStorage.removeItem('adminEmail');
+        sessionStorage.removeItem('adminToken');
+        showLogin('Invalid credentials.');
+        return;
+      }
+
+      allUsers = await res.json() as AdminUser[];
+      updateStats();
+      renderTable();
+    } catch {
+      showGlobalError('Failed to load users. Check your API URL.');
+    }
+  }
+
+  async function handleApprove(e: Event) {
+    const btn = e.currentTarget as HTMLButtonElement;
+    const userId = btn.dataset.userId!;
+
+    btn.disabled = true;
+    btn.textContent = 'Approving…';
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/approve`, {
+        method: 'PATCH',
+        headers: adminHeaders(),
+      });
+
+      if (!res.ok) {
+        btn.disabled = false;
+        btn.textContent = 'Approve';
+        showGlobalError('Failed to approve user. Try again.');
+        return;
+      }
+
+      // Update local state and re-render
+      const user = allUsers.find((u) => u.userId === userId);
+      if (user) user.isApproved = true;
+      updateStats();
+      renderTable();
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Approve';
+      showGlobalError('Network error. Try again.');
+    }
+  }
+
+  function showLogin(error?: string) {
+    document.getElementById('login-view')!.classList.remove('hidden');
+    document.getElementById('dashboard-view')!.classList.add('hidden');
+    if (error) {
+      const el = document.getElementById('login-error')!;
+      el.textContent = error;
+      el.classList.remove('hidden');
+    }
+  }
+
+  function showDashboard() {
+    document.getElementById('login-view')!.classList.add('hidden');
+    document.getElementById('dashboard-view')!.classList.remove('hidden');
+    loadUsers();
+  }
+
+  function showGlobalError(msg: string) {
+    const el = document.getElementById('global-error')!;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  // Login form
+  document.getElementById('login-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = (e.currentTarget as HTMLFormElement).querySelector('button[type="submit"]') as HTMLButtonElement;
+    const errorEl = document.getElementById('login-error')!;
+
+    errorEl.classList.add('hidden');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    adminEmail = (document.getElementById('admin-email') as HTMLInputElement).value.trim();
+    adminToken = (document.getElementById('admin-token') as HTMLInputElement).value.trim();
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        headers: adminHeaders(),
+      });
+
+      if (res.status === 403) {
+        errorEl.textContent = 'Invalid email or token.';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        return;
+      }
+
+      sessionStorage.setItem('adminEmail', adminEmail);
+      sessionStorage.setItem('adminToken', adminToken);
+
+      allUsers = await res.json() as AdminUser[];
+      showDashboard();
+    } catch {
+      errorEl.textContent = 'Could not reach the API. Check your connection.';
+      errorEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+
+  // Sign out
+  document.getElementById('signout-btn')!.addEventListener('click', () => {
+    sessionStorage.removeItem('adminEmail');
+    sessionStorage.removeItem('adminToken');
+    adminEmail = '';
+    adminToken = '';
+    allUsers = [];
+    showLogin();
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      activeTab = (btn as HTMLElement).dataset.tab as 'pending' | 'approved';
+
+      document.querySelectorAll('.tab-btn').forEach((b) => {
+        b.classList.toggle('bg-white/10', (b as HTMLElement).dataset.tab === activeTab);
+        b.classList.toggle('text-white', (b as HTMLElement).dataset.tab === activeTab);
+        b.classList.toggle('text-white/40', (b as HTMLElement).dataset.tab !== activeTab);
+      });
+
+      renderTable();
+    });
+  });
+
+  // Restore session on load
+  const stored = {
+    email: sessionStorage.getItem('adminEmail'),
+    token: sessionStorage.getItem('adminToken'),
+  };
+
+  if (stored.email && stored.token) {
+    adminEmail = stored.email;
+    adminToken = stored.token;
+    showDashboard();
+  }
+</script>
+</Layout>

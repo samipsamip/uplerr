@@ -15,6 +15,7 @@ export const authMiddleWare = factory.createMiddleware(async (c, next) => {
 	const [profile] = await db
 		.select({
 			id: profileSchema.id,
+			is_approved: profileSchema.is_approved,
 			is_banned: profileSchema.is_banned,
 			ban_reason: profileSchema.ban_reason,
 		})
@@ -24,6 +25,17 @@ export const authMiddleWare = factory.createMiddleware(async (c, next) => {
 
 	if (!profile) {
 		return c.json({ message: 'Profile not found' }, 404);
+	}
+
+	if (!profile.is_approved) {
+		return c.json(
+			{
+				message:
+					'Your account is pending approval. You will be notified once you have been granted access.',
+				code: 'PENDING_APPROVAL',
+			},
+			403,
+		);
 	}
 
 	if (profile.is_banned) {

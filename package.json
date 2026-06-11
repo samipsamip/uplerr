@@ -11,6 +11,7 @@
 		"test": "turbo run test",
 		"start:api": "turbo run start --filter=api",
 		"start:web": "turbo run start --filter=ui",
+		"dev:website": "turbo run dev --filter=@uppler/website",
 		"prepare": "husky"
 	},
 	"lint-staged": {

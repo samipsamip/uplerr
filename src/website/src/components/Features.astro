@@ -1,0 +1,108 @@
+---
+---
+
+<section id="features" class="bg-surface py-[120px]">
+  <div class="mx-auto max-w-[1200px] px-6">
+
+    <div class="mb-20 flex flex-col gap-4">
+      <p class="text-sm font-medium uppercase tracking-widest text-orange">Features</p>
+      <h2 class="max-w-xl text-[42px] font-semibold leading-[1.1] tracking-tight text-navy">
+        Built around outcomes, not features.
+      </h2>
+    </div>
+
+    <!-- Feature 1 — full width highlight -->
+    <div class="mb-6 grid items-center gap-12 rounded-2xl bg-navy p-10 lg:grid-cols-2">
+      <div class="flex flex-col gap-5">
+        <span class="w-fit rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/60">
+          01 / Skill Gap Detection
+        </span>
+        <h3 class="text-[32px] font-semibold leading-tight text-white">
+          Discover exactly what's missing.
+        </h3>
+        <p class="text-base leading-relaxed text-white/60">
+          We don't give you a generic list of skills to learn. We compare your
+          actual background against the specific requirements of the role you
+          want and surface only the gaps that matter.
+        </p>
+        <a href="#waitlist" class="w-fit text-sm font-medium text-orange hover:underline underline-offset-4">
+          Get started →
+        </a>
+      </div>
+      <div class="rounded-xl bg-white/5 p-6 border border-white/10">
+        <div class="mb-4 flex items-center justify-between">
+          <span class="text-sm font-medium text-white">Skills comparison</span>
+          <span class="text-xs text-white/40">vs target role</span>
+        </div>
+        <div class="space-y-3">
+          {[
+            { skill: 'React', pct: 90, has: true },
+            { skill: 'TypeScript', pct: 0, has: false },
+            { skill: 'Node.js', pct: 0, has: false },
+            { skill: 'PostgreSQL', pct: 30, has: false },
+            { skill: 'Docker', pct: 0, has: false },
+          ].map(({ skill, pct, has }) => (
+            <div class="flex items-center gap-4">
+              <span class={`w-28 text-sm ${has ? 'text-white' : 'text-white/40'}`}>{skill}</span>
+              <div class="flex-1 rounded-full bg-white/10 h-1.5 overflow-hidden">
+                <div
+                  class={`h-full rounded-full ${has ? 'bg-green-400' : 'bg-orange/60'}`}
+                  style={`width: ${pct || (has ? 85 : 0)}%`}
+                ></div>
+              </div>
+              {has
+                ? <span class="text-xs text-green-400">Present</span>
+                : <span class="text-xs text-orange/80">Missing</span>
+              }
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Features 2–4: grid -->
+    <div class="grid gap-6 md:grid-cols-3">
+
+      <div class="rounded-2xl bg-white p-8 border border-[#e8eaed] flex flex-col gap-5">
+        <span class="w-fit rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
+          02 / Personalized Roadmaps
+        </span>
+        <h3 class="text-xl font-semibold text-navy leading-snug">
+          Every roadmap is built for you.
+        </h3>
+        <p class="text-base leading-relaxed text-muted flex-1">
+          No two people have the same background. Your roadmap is generated
+          from your exact skills, not from a template.
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-white p-8 border border-[#e8eaed] flex flex-col gap-5">
+        <span class="w-fit rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
+          03 / Job Posting Analysis
+        </span>
+        <h3 class="text-xl font-semibold text-navy leading-snug">
+          Paste a URL. That's it.
+        </h3>
+        <p class="text-base leading-relaxed text-muted flex-1">
+          Drop in any job posting URL and we extract the full requirement set.
+          No copying and pasting required.
+        </p>
+      </div>
+
+      <div class="rounded-2xl bg-apricot p-8 border border-orange/10 flex flex-col gap-5">
+        <span class="w-fit rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-orange">
+          04 / Structured Progression
+        </span>
+        <h3 class="text-xl font-semibold text-navy leading-snug">
+          Stop guessing what to learn next.
+        </h3>
+        <p class="text-base leading-relaxed text-muted flex-1">
+          Follow a month-by-month plan with clear milestones instead of
+          jumping between random tutorials.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,136 @@
+---
+---
+
+<section id="pricing" class="bg-surface py-[120px]">
+  <div class="mx-auto max-w-[1200px] px-6">
+
+    <div class="mb-16 flex flex-col gap-4">
+      <p class="text-sm font-medium uppercase tracking-widest text-orange">Pricing</p>
+      <h2 class="max-w-lg text-[42px] font-semibold leading-[1.1] tracking-tight text-navy">
+        Simple, transparent pricing.
+      </h2>
+      <p class="text-base text-muted">
+        Free during early access. Paid plans launch after beta.
+      </p>
+    </div>
+
+    <div class="grid items-stretch gap-6 lg:grid-cols-3">
+
+      <!-- Starter -->
+      <div class="flex flex-col rounded-2xl border border-[#e8eaed] bg-white p-8">
+        <div class="mb-8 flex flex-col gap-3">
+          <h3 class="text-lg font-semibold text-navy">Starter</h3>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-semibold text-navy">Free</span>
+          </div>
+          <p class="text-sm text-muted">During invite-only beta access</p>
+        </div>
+
+        <ul class="mb-8 flex-1 space-y-3">
+          {[
+            '1 active roadmap',
+            'CV skill extraction',
+            'Skill gap analysis',
+            'Learning roadmap generation',
+            'Email support',
+          ].map((item) => (
+            <li class="flex items-center gap-2.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8l3 3 7-7" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-sm text-muted">{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <a
+          href="#waitlist"
+          class="block w-full rounded-xl border border-[#e8eaed] py-3 text-center text-sm font-medium text-navy transition-colors hover:bg-surface"
+        >
+          Request Early Access
+        </a>
+      </div>
+
+      <!-- Professional — highlighted -->
+      <div class="relative flex flex-col rounded-2xl bg-navy p-8 shadow-2xl shadow-navy/20">
+        <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+          <span class="rounded-full bg-orange px-4 py-1 text-xs font-semibold text-white shadow-sm">
+            Most Popular
+          </span>
+        </div>
+
+        <div class="mb-8 flex flex-col gap-3">
+          <h3 class="text-lg font-semibold text-white">Professional</h3>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-semibold text-white">$19</span>
+            <span class="text-sm text-white/40">/month</span>
+          </div>
+          <p class="text-sm text-white/50">For serious career progression</p>
+        </div>
+
+        <ul class="mb-8 flex-1 space-y-3">
+          {[
+            'Unlimited roadmaps',
+            'CV skill extraction',
+            'Deep skill gap analysis',
+            'Customizable learning paths',
+            'Roadmap progress tracking',
+            'Priority support',
+          ].map((item) => (
+            <li class="flex items-center gap-2.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8l3 3 7-7" stroke="#4ade80" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-sm text-white/70">{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <a
+          href="#waitlist"
+          class="block w-full rounded-xl bg-orange py-3 text-center text-sm font-semibold text-white shadow-lg shadow-orange/25 transition-all hover:opacity-90"
+        >
+          Get Early Access
+        </a>
+      </div>
+
+      <!-- Teams -->
+      <div class="flex flex-col rounded-2xl border border-[#e8eaed] bg-white p-8">
+        <div class="mb-8 flex flex-col gap-3">
+          <h3 class="text-lg font-semibold text-navy">Teams</h3>
+          <div class="flex items-baseline gap-1">
+            <span class="text-4xl font-semibold text-navy">Custom</span>
+          </div>
+          <p class="text-sm text-muted">For bootcamps and organizations</p>
+        </div>
+
+        <ul class="mb-8 flex-1 space-y-3">
+          {[
+            'Everything in Professional',
+            'Multi-user dashboards',
+            'Cohort skill gap reports',
+            'Custom learning templates',
+            'Dedicated account manager',
+            'SLA & custom contracts',
+          ].map((item) => (
+            <li class="flex items-center gap-2.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8l3 3 7-7" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="text-sm text-muted">{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <a
+          href="mailto:hello@uppler.io"
+          class="block w-full rounded-xl border border-[#e8eaed] py-3 text-center text-sm font-medium text-navy transition-colors hover:bg-surface"
+        >
+          Contact Us
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+</section>

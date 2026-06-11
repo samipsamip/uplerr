@@ -1,32 +1,34 @@
-import { z } from "zod";
+import { z } from 'zod';
 export const UserSignupSchema = z
-  .object({
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
-    email: z.email(),
-    password: z.string().min(8, "Password must be at least 8 characters long"),
-    confirmPassword: z
-      .string()
-      .min(8, "Confirm password must be at least 8 characters long"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+	.object({
+		firstName: z.string().min(1, 'First name is required'),
+		lastName: z.string().min(1, 'Last name is required'),
+		email: z.string().email(),
+		password: z.string().min(8, 'Password must be at least 8 characters long'),
+		confirmPassword: z
+			.string()
+			.min(8, 'Confirm password must be at least 8 characters long'),
+	})
+	.refine((data) => data.password === data.confirmPassword, {
+		message: 'Passwords do not match',
+		path: ['confirmPassword'],
+	});
 
 export const UserLoginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1, "Password is required"),
+	email: z.string().email(),
+	password: z.string().min(1, 'Password is required'),
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.email(),
+	email: z.string().email(),
 });
 
 export const ResetPasswordSchema = z
 	.object({
 		password: z.string().min(8, 'Password must be at least 8 characters long'),
-		confirmPassword: z.string().min(8, 'Confirm password must be at least 8 characters long'),
+		confirmPassword: z
+			.string()
+			.min(8, 'Confirm password must be at least 8 characters long'),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: 'Passwords do not match',
