@@ -34,6 +34,8 @@ RUN pnpm --filter @uppler/api exec playwright install chromium --with-deps
 
 COPY --from=builder /app/src/types/dist ./src/types/dist
 COPY --from=builder /app/src/api/dist ./src/api/dist
+COPY --from=builder /app/src/api/drizzle ./src/api/drizzle
+COPY --from=builder /app/src/api/drizzle.config.ts ./src/api/drizzle.config.ts
 
 COPY src/api/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
