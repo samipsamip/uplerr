@@ -5,64 +5,8 @@
 		{
 			"idx": 0,
 			"version": "7",
-			"when": 1779654177182,
-			"tag": "0000_lame_meggan",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1779973974113,
-			"tag": "0001_hot_baron_strucker",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1780048378587,
-			"tag": "0002_furry_ink",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1780184773979,
-			"tag": "0003_rainy_richard_fisk",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "7",
-			"when": 1780278487950,
-			"tag": "0004_serious_ink",
-			"breakpoints": true
-		},
-		{
-			"idx": 5,
-			"version": "7",
-			"when": 1781173799694,
-			"tag": "0005_absurd_mister_fear",
-			"breakpoints": true
-		},
-		{
-			"idx": 6,
-			"version": "7",
-			"when": 1781650800000,
-			"tag": "0006_waitlist",
-			"breakpoints": true
-		},
-		{
-			"idx": 7,
-			"version": "7",
-			"when": 1781654400000,
-			"tag": "0007_profile_approval",
-			"breakpoints": true
-		},
-		{
-			"idx": 8,
-			"version": "7",
-			"when": 1781658000000,
-			"tag": "0008_admin_tokens",
+			"when": 1781215811382,
+			"tag": "0000_milky_glorian",
 			"breakpoints": true
 		}
 	]
