@@ -32,11 +32,6 @@ export function LoginForm({
 		if (searchParams.get('verified') === 'true') {
 			toast.success('Email verified! You can now sign in.');
 		}
-		if (searchParams.get('reason') === 'pending_approval') {
-			toast.error(
-				'Your account is pending approval. You will be notified once approved.',
-			);
-		}
 	}, [searchParams]);
 
 	const {
@@ -64,9 +59,7 @@ export function LoginForm({
 								? 'Please verify your email before signing in.'
 								: code === 'USER_NOT_FOUND'
 									? 'No account found with that email.'
-									: code === 'PENDING_APPROVAL'
-										? 'Your account is pending approval. You will be notified once approved.'
-										: 'Something went wrong. Please try again.';
+									: 'Something went wrong. Please try again.';
 					toast.error(message);
 				},
 				onSuccess: () => {

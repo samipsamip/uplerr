@@ -12,6 +12,7 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import PasswordResetConfirmationPage from '@/pages/auth/PasswordResetConfirmationPage';
 import PasswordResetSuccessPage from '@/pages/auth/PasswordResetSuccessPage';
+import PendingApprovalPage from '@/pages/auth/PendingApprovalPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
@@ -76,7 +77,7 @@ const rootLoader = async () => {
 const requireAuth = async () => {
 	const session = await getSession();
 	if (session === 'PENDING_APPROVAL') {
-		throw redirect('/login?reason=pending_approval');
+		throw redirect('/pending-approval');
 	}
 	if (!session) {
 		throw redirect('/login');
@@ -96,6 +97,10 @@ const publicRoutes: RouteObject[] = [
 	{
 		path: '/login',
 		Component: LoginPage,
+	},
+	{
+		path: '/pending-approval',
+		Component: PendingApprovalPage,
 	},
 	{
 		path: '/signup',
