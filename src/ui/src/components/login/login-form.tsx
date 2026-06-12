@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod/dist/zod.js';
 
@@ -26,13 +25,6 @@ export function LoginForm({
 	...props
 }: React.ComponentProps<'div'>) {
 	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
-
-	useEffect(() => {
-		if (searchParams.get('verified') === 'true') {
-			toast.success('Email verified! You can now sign in.');
-		}
-	}, [searchParams]);
 
 	const {
 		handleSubmit,

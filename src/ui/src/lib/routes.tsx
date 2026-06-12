@@ -8,6 +8,7 @@ import {
 import ky, { HTTPError } from 'ky';
 
 import { Fallback } from '@/components/ui/fallback';
+import EmailVerifiedPage from '@/pages/auth/EmailVerifiedPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import PasswordResetConfirmationPage from '@/pages/auth/PasswordResetConfirmationPage';
@@ -101,6 +102,10 @@ const publicRoutes: RouteObject[] = [
 	{
 		path: '/pending-approval',
 		Component: PendingApprovalPage,
+	},
+	{
+		path: '/email-verified',
+		Component: EmailVerifiedPage,
 	},
 	{
 		path: '/signup',
