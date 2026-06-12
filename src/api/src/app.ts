@@ -18,22 +18,20 @@ export function buildApp() {
 		? process.env.TRUSTED_ORIGINS.split(',').map((o) => o.trim())
 		: ['http://localhost:5173'];
 
-	const corsMiddleware = cors({
-		origin: allowedOrigins,
-		allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-		allowHeaders: ['Content-Type', 'Authorization'],
-		credentials: true,
-		maxAge: 600,
-	});
+	app.use(
+		'*',
+		cors({
+			origin: allowedOrigins,
+			allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+			allowHeaders: ['Content-Type', 'Authorization'],
+			credentials: true,
+			maxAge: 600,
+		}),
+	);
 
-	// better-auth sets its own CORS headers on /api/auth/* via trustedOrigins —
-	// applying Hono's middleware there too would duplicate Access-Control-Allow-Origin
-	app.use('*', (c, next) => {
-		if (c.req.path.startsWith('/api/auth')) return next();
-		return corsMiddleware(c, next);
-	});
-
-	app.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+	app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) =>
+		auth.handler(c.req.raw),
+	);
 	app.get('/me', authMiddleWare, (c) => {
 		return c.json(
 			{
