@@ -1,6 +1,7 @@
 import { initLogger, invoke } from 'braintrust';
 import {
 	type JobDescriptionModerationType,
+	JobDescriptionSkillsExtractionSchema,
 	type JobDescriptionSkillsExtractionType,
 	ModerationReturnSchema,
 	ProjectExtractionSchema,
@@ -8,6 +9,7 @@ import {
 	ResumeExtractionSchema,
 	type ResumeExtractionType,
 	type ResumeModerationType,
+	RoadmapCurriculumSchema,
 	type RoadmapCurriculumType,
 	SkillExtractionSchema,
 	type SkillExtractionType,
@@ -143,26 +145,31 @@ class BrainTrust {
 		return ProjectExtractionSchema.parse(raw);
 	}
 
-	moderateJobDescription(jobDescriptionRawText: string, profileId: string) {
-		return this.call<JobDescriptionModerationType>(
+	async moderateJobDescription(
+		jobDescriptionRawText: string,
+		profileId: string,
+	): Promise<JobDescriptionModerationType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_JOB_DESCRIPTION_MODERATION,
 			{ JOB_DESCRIPTION: jobDescriptionRawText },
 			{ profileId },
 		);
+		return ModerationReturnSchema.parse(raw);
 	}
 
-	extractRequiredSkillsFromJobDescription(
+	async extractRequiredSkillsFromJobDescription(
 		jobDescriptionRawText: string,
 		profileId: string,
-	) {
-		return this.call<JobDescriptionSkillsExtractionType>(
+	): Promise<JobDescriptionSkillsExtractionType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_JOB_DESCRIPTION_SKILLS_EXTRACTION,
 			{ JOB_DESCRIPTION: jobDescriptionRawText },
 			{ profileId },
 		);
+		return JobDescriptionSkillsExtractionSchema.parse(raw);
 	}
 
-	generateRoadmapCurriculum(
+	async generateRoadmapCurriculum(
 		input: {
 			job_title: string | null;
 			company: string | null;
@@ -175,8 +182,8 @@ class BrainTrust {
 			}>;
 		},
 		profileId: string,
-	) {
-		return this.call<RoadmapCurriculumType>(
+	): Promise<RoadmapCurriculumType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.ROADMAP_CURRICULUM,
 			{
 				JOB_TITLE: input.job_title ?? '',
@@ -187,6 +194,7 @@ class BrainTrust {
 			},
 			{ profileId },
 		);
+		return RoadmapCurriculumSchema.parse(raw);
 	}
 }
 
