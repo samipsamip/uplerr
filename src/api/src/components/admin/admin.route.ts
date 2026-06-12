@@ -10,12 +10,19 @@ import { emailSender } from '../../utils/email_utils';
 const adminRoute = factory.createApp();
 
 adminRoute.use('*', async (c, next) => {
-	const adminEmail = c.req.header('X-Admin-Email');
-	const adminToken = c.req.header('X-Admin-Token');
-
-	if (!adminEmail || !adminToken) {
+	const authorization = c.req.header('Authorization');
+	if (!authorization?.startsWith('Basic ')) {
 		return c.json({ message: 'Forbidden' }, 403);
 	}
+
+	const decoded = atob(authorization.slice(6));
+	const colon = decoded.indexOf(':');
+	if (colon === -1) {
+		return c.json({ message: 'Forbidden' }, 403);
+	}
+
+	const adminEmail = decoded.slice(0, colon);
+	const adminToken = decoded.slice(colon + 1);
 
 	const [record] = await db
 		.select({ id: adminTokensSchema.id })

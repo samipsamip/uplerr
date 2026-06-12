@@ -161,8 +161,7 @@ import Layout from '@/layouts/Layout.astro';
   function adminHeaders() {
     return {
       'Content-Type': 'application/json',
-      'X-Admin-Email': adminEmail,
-      'X-Admin-Token': adminToken,
+      'Authorization': `Basic ${btoa(`${adminEmail}:${adminToken}`)}`,
     };
   }
 
