@@ -75,7 +75,7 @@ class BrainTrust {
 				metadata,
 			});
 			const result = this.extractJson(raw) as Record<string, unknown>;
-			return ((result as { parameter?: T }).parameter ?? result) as T;
+			return (result.parameter ?? result.json ?? result) as T;
 		} finally {
 			this.logger.flush();
 		}
