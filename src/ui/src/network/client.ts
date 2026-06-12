@@ -1,7 +1,7 @@
 import ky, { isHTTPError } from 'ky';
 
 export const api = ky.create({
-	baseUrl: import.meta.env.VITE_BASE_URL,
+	prefix: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
 	credentials: 'include',
 	hooks: {
 		beforeError: [
