@@ -29,7 +29,7 @@ ENV NODE_ENV=production
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY src/types/package.json ./src/types/
 COPY src/api/package.json ./src/api/
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 RUN pnpm --filter @uppler/api exec playwright install chromium --with-deps
 
