@@ -5,7 +5,7 @@ import {
 	redirect,
 	useLoaderData,
 } from 'react-router';
-import ky from 'ky';
+import ky, { HTTPError } from 'ky';
 
 import { Fallback } from '@/components/ui/fallback';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
@@ -37,8 +37,19 @@ const getSession = async () => {
 			.json();
 		_sessionCache = { value, expiresAt: now + 30_000 };
 		return value;
-	} catch {
+	} catch (err) {
 		_sessionCache = null;
+		if (err instanceof HTTPError && err.response.status === 403) {
+			const body = await err.response.json().catch(() => ({}));
+			if (
+				typeof body === 'object' &&
+				body !== null &&
+				'code' in body &&
+				body.code === 'PENDING_APPROVAL'
+			) {
+				return 'PENDING_APPROVAL' as const;
+			}
+		}
 		return false;
 	}
 };
@@ -63,11 +74,14 @@ const rootLoader = async () => {
  * Protect private routes
  */
 const requireAuth = async () => {
-	const authenticated = await getSession();
-	if (!authenticated) {
+	const session = await getSession();
+	if (session === 'PENDING_APPROVAL') {
+		throw redirect('/login?reason=pending_approval');
+	}
+	if (!session) {
 		throw redirect('/login');
 	}
-	return authenticated;
+	return session;
 };
 
 /* ---------------------------------- */
