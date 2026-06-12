@@ -15,7 +15,7 @@ import { authMiddleWare } from './lib/middleware';
 export function buildApp() {
 	const app = factory.createApp();
 	const allowedOrigins = process.env.TRUSTED_ORIGINS
-		? process.env.TRUSTED_ORIGINS.split(',')
+		? process.env.TRUSTED_ORIGINS.split(',').map((o) => o.trim())
 		: ['http://localhost:5173'];
 
 	app.use(
