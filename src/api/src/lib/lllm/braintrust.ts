@@ -1,13 +1,18 @@
 import { initLogger, invoke } from 'braintrust';
-import type {
-	JobDescriptionModerationType,
-	JobDescriptionSkillsExtractionType,
-	ProjectExtractionType,
-	ResumeExtractionType,
-	ResumeModerationType,
-	RoadmapCurriculumType,
-	SkillExtractionType,
-	ValidResumeType,
+import {
+	type JobDescriptionModerationType,
+	type JobDescriptionSkillsExtractionType,
+	ModerationReturnSchema,
+	ProjectExtractionSchema,
+	type ProjectExtractionType,
+	ResumeExtractionSchema,
+	type ResumeExtractionType,
+	type ResumeModerationType,
+	type RoadmapCurriculumType,
+	SkillExtractionSchema,
+	type SkillExtractionType,
+	ValidResumeReturnSchema,
+	type ValidResumeType,
 } from '@uppler/types';
 
 const BRAINTRUST_PROMPT_SLUGS = {
@@ -76,52 +81,66 @@ class BrainTrust {
 		}
 	}
 
-	checkForModeration(resumeText: string, profileId: string) {
-		return this.call<ResumeModerationType>(
+	async checkForModeration(
+		resumeText: string,
+		profileId: string,
+	): Promise<ResumeModerationType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_MODERATION,
 			{ RESUME_TEXT: resumeText },
 			{ profileId },
 		);
+		return ModerationReturnSchema.parse(raw);
 	}
 
-	performValidationCheckOnResume(resumeText: string, profileId: string) {
-		return this.call<ValidResumeType>(
+	async performValidationCheckOnResume(
+		resumeText: string,
+		profileId: string,
+	): Promise<ValidResumeType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.IS_VALID_RESUME,
 			{ RESUME_TEXT: resumeText },
 			{ profileId },
 		);
+		return ValidResumeReturnSchema.parse(raw);
 	}
 
-	performResumeExtraction(
+	async performResumeExtraction(
 		resumeRawText: string,
 		resumeLinks: string[],
 		profileId: string,
-	) {
-		return this.call<ResumeExtractionType>(
+	): Promise<ResumeExtractionType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.CORE_RESUME_EXTRACTION,
 			{ RESUME_TEXT: resumeRawText, RESUME_LINKS: resumeLinks },
 			{ profileId },
 		);
+		return ResumeExtractionSchema.parse(raw);
 	}
 
-	performSkillsExtraction(resumeRawText: string, profileId: string) {
-		return this.call<SkillExtractionType>(
+	async performSkillsExtraction(
+		resumeRawText: string,
+		profileId: string,
+	): Promise<SkillExtractionType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.EXTRACT_SKILLS,
 			{ RESUME_TEXT: resumeRawText },
 			{ profileId },
 		);
+		return SkillExtractionSchema.parse(raw);
 	}
 
-	performProjectsExtraction(
+	async performProjectsExtraction(
 		resumeRawText: string,
 		resumeLinks: string[],
 		profileId: string,
-	) {
-		return this.call<ProjectExtractionType>(
+	): Promise<ProjectExtractionType> {
+		const raw = await this.call<unknown>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_PROJECTS_EXTRACTION,
 			{ RESUME_TEXT: resumeRawText, RESUME_LINKS: resumeLinks },
 			{ profileId },
 		);
+		return ProjectExtractionSchema.parse(raw);
 	}
 
 	moderateJobDescription(jobDescriptionRawText: string, profileId: string) {
