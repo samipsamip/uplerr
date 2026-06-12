@@ -2,8 +2,10 @@ name: Lint and Test Workflow
 on:
   push:
     branches:
-      - main
       - feature/*
+  pull_request:
+    branches:
+      - main
   workflow_call:
 
 jobs:
