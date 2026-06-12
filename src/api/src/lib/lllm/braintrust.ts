@@ -1,20 +1,13 @@
 import { initLogger, invoke } from 'braintrust';
-import {
-	type JobDescriptionModerationType,
-	JobDescriptionSkillsExtractionSchema,
-	type JobDescriptionSkillsExtractionType,
-	ModerationReturnSchema,
-	ProjectExtractionSchema,
-	type ProjectExtractionType,
-	ResumeExtractionSchema,
-	type ResumeExtractionType,
-	type ResumeModerationType,
-	RoadmapCurriculumSchema,
-	type RoadmapCurriculumType,
-	SkillExtractionSchema,
-	type SkillExtractionType,
-	ValidResumeReturnSchema,
-	type ValidResumeType,
+import type {
+	JobDescriptionModerationType,
+	JobDescriptionSkillsExtractionType,
+	ProjectExtractionType,
+	ResumeExtractionType,
+	ResumeModerationType,
+	RoadmapCurriculumType,
+	SkillExtractionType,
+	ValidResumeType,
 } from '@uppler/types';
 
 const BRAINTRUST_PROMPT_SLUGS = {
@@ -83,93 +76,74 @@ class BrainTrust {
 		}
 	}
 
-	async checkForModeration(
-		resumeText: string,
-		profileId: string,
-	): Promise<ResumeModerationType> {
-		const raw = await this.call<unknown>(
+	checkForModeration(resumeText: string, profileId: string) {
+		return this.call<ResumeModerationType>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_MODERATION,
 			{ RESUME_TEXT: resumeText },
 			{ profileId },
 		);
-		return ModerationReturnSchema.parse(raw);
 	}
 
-	async performValidationCheckOnResume(
-		resumeText: string,
-		profileId: string,
-	): Promise<ValidResumeType> {
-		const raw = await this.call<unknown>(
+	performValidationCheckOnResume(resumeText: string, profileId: string) {
+		return this.call<ValidResumeType>(
 			BRAINTRUST_PROMPT_SLUGS.IS_VALID_RESUME,
 			{ RESUME_TEXT: resumeText },
 			{ profileId },
 		);
-		return ValidResumeReturnSchema.parse(raw);
 	}
 
-	async performResumeExtraction(
+	performResumeExtraction(
 		resumeRawText: string,
 		resumeLinks: string[],
 		profileId: string,
-	): Promise<ResumeExtractionType> {
-		const raw = await this.call<unknown>(
+	) {
+		return this.call<ResumeExtractionType>(
 			BRAINTRUST_PROMPT_SLUGS.CORE_RESUME_EXTRACTION,
 			{ RESUME_TEXT: resumeRawText, RESUME_LINKS: resumeLinks },
 			{ profileId },
 		);
-		return ResumeExtractionSchema.parse(raw);
 	}
 
-	async performSkillsExtraction(
-		resumeRawText: string,
-		profileId: string,
-	): Promise<SkillExtractionType> {
-		const raw = await this.call<unknown>(
+	performSkillsExtraction(resumeRawText: string, profileId: string) {
+		return this.call<SkillExtractionType>(
 			BRAINTRUST_PROMPT_SLUGS.EXTRACT_SKILLS,
 			{ RESUME_TEXT: resumeRawText },
 			{ profileId },
 		);
-		return SkillExtractionSchema.parse(raw);
 	}
 
-	async performProjectsExtraction(
+	performProjectsExtraction(
 		resumeRawText: string,
 		resumeLinks: string[],
 		profileId: string,
-	): Promise<ProjectExtractionType> {
-		const raw = await this.call<unknown>(
+	) {
+		return this.call<ProjectExtractionType>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_PROJECTS_EXTRACTION,
 			{ RESUME_TEXT: resumeRawText, RESUME_LINKS: resumeLinks },
 			{ profileId },
 		);
-		return ProjectExtractionSchema.parse(raw);
 	}
 
-	async moderateJobDescription(
-		jobDescriptionRawText: string,
-		profileId: string,
-	): Promise<JobDescriptionModerationType> {
-		const raw = await this.call<unknown>(
+	moderateJobDescription(jobDescriptionRawText: string, profileId: string) {
+		return this.call<JobDescriptionModerationType>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_JOB_DESCRIPTION_MODERATION,
 			{ JOB_DESCRIPTION: jobDescriptionRawText },
 			{ profileId },
 		);
-		return ModerationReturnSchema.parse(raw);
 	}
 
-	async extractRequiredSkillsFromJobDescription(
+	extractRequiredSkillsFromJobDescription(
 		jobDescriptionRawText: string,
 		profileId: string,
-	): Promise<JobDescriptionSkillsExtractionType> {
-		const raw = await this.call<unknown>(
+	) {
+		return this.call<JobDescriptionSkillsExtractionType>(
 			BRAINTRUST_PROMPT_SLUGS.RESUME_JOB_DESCRIPTION_SKILLS_EXTRACTION,
 			{ JOB_DESCRIPTION: jobDescriptionRawText },
 			{ profileId },
 		);
-		return JobDescriptionSkillsExtractionSchema.parse(raw);
 	}
 
-	async generateRoadmapCurriculum(
+	generateRoadmapCurriculum(
 		input: {
 			job_title: string | null;
 			company: string | null;
@@ -182,8 +156,8 @@ class BrainTrust {
 			}>;
 		},
 		profileId: string,
-	): Promise<RoadmapCurriculumType> {
-		const raw = await this.call<unknown>(
+	) {
+		return this.call<RoadmapCurriculumType>(
 			BRAINTRUST_PROMPT_SLUGS.ROADMAP_CURRICULUM,
 			{
 				JOB_TITLE: input.job_title ?? '',
@@ -194,7 +168,6 @@ class BrainTrust {
 			},
 			{ profileId },
 		);
-		return RoadmapCurriculumSchema.parse(raw);
 	}
 }
 
