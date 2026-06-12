@@ -5,7 +5,7 @@ import {
 	redirect,
 	useLoaderData,
 } from 'react-router';
-import ky, { HTTPError } from 'ky';
+import ky from 'ky';
 
 import { Fallback } from '@/components/ui/fallback';
 import EmailVerifiedPage from '@/pages/auth/EmailVerifiedPage';
@@ -31,29 +31,32 @@ const getSession = async () => {
 	if (_sessionCache && now < _sessionCache.expiresAt) {
 		return _sessionCache.value;
 	}
-	try {
-		const value = await ky
-			.get(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/me`, {
-				credentials: 'include',
-			})
-			.json();
+	const res = await ky.get(
+		`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/me`,
+		{
+			credentials: 'include',
+			throwHttpErrors: false,
+		},
+	);
+
+	if (res.ok) {
+		const value = await res.json();
 		_sessionCache = { value, expiresAt: now + 30_000 };
 		return value;
-	} catch (err) {
-		_sessionCache = null;
-		if (err instanceof HTTPError && err.response.status === 403) {
-			const body = await err.response.json().catch(() => ({}));
-			if (
-				typeof body === 'object' &&
-				body !== null &&
-				'code' in body &&
-				body.code === 'PENDING_APPROVAL'
-			) {
-				return 'PENDING_APPROVAL' as const;
-			}
-		}
-		return false;
 	}
+
+	_sessionCache = null;
+
+	if (res.status === 403) {
+		const body = await res
+			.json<{ code?: string }>()
+			.catch(() => ({ code: undefined }));
+		if (body.code === 'PENDING_APPROVAL') {
+			return 'PENDING_APPROVAL' as const;
+		}
+	}
+
+	return false;
 };
 
 export const invalidateSessionCache = () => {
