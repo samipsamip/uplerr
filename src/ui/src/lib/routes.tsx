@@ -67,11 +67,13 @@ export const invalidateSessionCache = () => {
  * / → decide initial landing page
  */
 const rootLoader = async () => {
-	const authenticated = await getSession();
-	if (authenticated) {
+	const session = await getSession();
+	if (session === 'PENDING_APPROVAL') {
+		throw redirect('/pending-approval');
+	}
+	if (session) {
 		throw redirect('/dashboard');
 	}
-
 	throw redirect('/login');
 };
 
