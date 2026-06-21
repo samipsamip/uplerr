@@ -11,16 +11,19 @@ import type {
 } from '@uppler/types';
 
 const BRAINTRUST_PROMPT_SLUGS = {
-	IS_VALID_RESUME: 'uplerr-is-resume-valid-eec7',
-	CORE_RESUME_EXTRACTION: 'uplerr-core-resume-extraction-2033',
-	EXTRACT_SKILLS: 'uplerr-extract-skills-798c',
-	RESUME_MODERATION: 'uplerr-resume-moderator-42f7',
-	RESUME_PROJECTS_EXTRACTION: 'uplerr-resume-extract-projects-9a0a',
-	RESUME_JOB_DESCRIPTION_MODERATION: 'uplerr-job-description-moderator-837d',
+	IS_VALID_RESUME: process.env.BRAINTRUST_SLUG_IS_VALID_RESUME ?? '',
+	CORE_RESUME_EXTRACTION:
+		process.env.BRAINTRUST_SLUG_CORE_RESUME_EXTRACTION ?? '',
+	EXTRACT_SKILLS: process.env.BRAINTRUST_SLUG_EXTRACT_SKILLS ?? '',
+	RESUME_MODERATION: process.env.BRAINTRUST_SLUG_RESUME_MODERATION ?? '',
+	RESUME_PROJECTS_EXTRACTION:
+		process.env.BRAINTRUST_SLUG_RESUME_PROJECTS_EXTRACTION ?? '',
+	RESUME_JOB_DESCRIPTION_MODERATION:
+		process.env.BRAINTRUST_SLUG_JOB_DESCRIPTION_MODERATION ?? '',
 	RESUME_JOB_DESCRIPTION_SKILLS_EXTRACTION:
-		'uplerr-extract-required-skills-b003',
-	ROADMAP_CURRICULUM: 'uplerr-learning-advisor-1faf',
-} as const;
+		process.env.BRAINTRUST_SLUG_JOB_DESCRIPTION_SKILLS_EXTRACTION ?? '',
+	ROADMAP_CURRICULUM: process.env.BRAINTRUST_SLUG_ROADMAP_CURRICULUM ?? '',
+};
 
 type BrainTrustConfig = {
 	projectId: string;

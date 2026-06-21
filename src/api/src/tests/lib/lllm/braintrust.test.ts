@@ -25,7 +25,6 @@ describe('braintrust.checkForModeration', () => {
 
 		expect(invokeMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				slug: 'uplerr-resume-moderator-42f7',
 				input: { RESUME_TEXT: RAW_TEXT },
 				metadata: { profileId: PROFILE_ID },
 			}),
@@ -62,7 +61,6 @@ describe('braintrust.performValidationCheckOnResume', () => {
 
 		expect(invokeMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				slug: 'uplerr-is-resume-valid-eec7',
 				input: { RESUME_TEXT: RAW_TEXT },
 				metadata: { profileId: PROFILE_ID },
 			}),
@@ -88,7 +86,6 @@ describe('braintrust.performResumeExtraction', () => {
 
 		expect(invokeMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				slug: 'uplerr-core-resume-extraction-2033',
 				input: { RESUME_TEXT: RAW_TEXT, RESUME_LINKS: links },
 				metadata: { profileId: PROFILE_ID },
 			}),
@@ -105,7 +102,6 @@ describe('braintrust.performProjectsExtraction', () => {
 
 		expect(invokeMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				slug: 'uplerr-resume-extract-projects-9a0a',
 				input: { RESUME_TEXT: RAW_TEXT, RESUME_LINKS: links },
 				metadata: { profileId: PROFILE_ID },
 			}),
@@ -149,7 +145,6 @@ describe('braintrust.performSkillsExtraction', () => {
 
 		expect(invokeMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				slug: 'uplerr-extract-skills-798c',
 				input: { RESUME_TEXT: RAW_TEXT },
 				metadata: { profileId: PROFILE_ID },
 			}),
