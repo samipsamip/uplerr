@@ -18,17 +18,6 @@ I started Uplerr as a project that I intended to make public and see if I could 
 - **Roadmap generation**: the gap list, your weekly availability, and a target date go into an LLM prompt that returns a structured curriculum of topics, subtopics, and milestones.
 - **Progress tracking**: mark topics complete, attach your own resources to any subtopic, and archive old roadmaps.
 
-## Screenshots
-
-**Individual Roadmap View**
-![Uplerr Roadmap View](image.png)
-
-**CV Review Page**
-![Profile Review Page](image-3.png)
-
-**Skills & CV Page**
-![Skills and CV Page](image-2.png)
-
 ---
 
 ## Architecture
@@ -328,3 +317,14 @@ pnpm test
 ```
 
 ---
+
+## Screenshots
+
+**Individual Roadmap View**
+![Uplerr Roadmap View](image.png)
+
+**CV Review Page**
+![Profile Review Page](image-3.png)
+
+**Skills & CV Page**
+![Skills and CV Page](image-2.png)
