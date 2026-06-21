@@ -1,81 +1,48 @@
 import { Resend } from 'resend';
 
-import { EMAIL_TEMPLATE_ID } from './constants';
+const resend = process.env.RESEND_API_KEY
+	? new Resend(process.env.RESEND_API_KEY)
+	: null;
 
-export default class ProductEmail {
-	constructor(private emailClient: Resend) {}
-	async sendVerificationEmail(
-		fullName: string,
-		email: string,
-		url: string,
-	): Promise<void> {
-		const { error } = await this.emailClient.emails.send({
-			to: email,
-			template: {
-				id: EMAIL_TEMPLATE_ID.welcomeEmail,
-				variables: {
-					fullName: fullName,
-					verificationURL: url,
-				},
-			},
-		});
-		if (error)
-			throw new Error(`Failed to send verification email: ${error.message}`);
-	}
+const FROM = process.env.EMAIL_FROM ?? 'Uppler <noreply@uplerr.com>';
 
-	async sendApprovalEmail(name: string, email: string): Promise<void> {
-		const appUrl = process.env.APP_URL ?? 'https://app.uplerr.com';
-		const { error } = await this.emailClient.emails.send({
-			from: 'Uppler <noreply@uplerr.com>',
-			to: email,
-			subject: "You're in — welcome to Uppler",
-			html: `
-				<p>Hi ${name},</p>
-				<p>Great news — your Uppler account has been approved. You can now log in and start building your career roadmap.</p>
-				<p><a href="${appUrl}">Log in to Uppler →</a></p>
-				<p>— The Uppler Team</p>
-			`,
+async function send(
+	to: string,
+	subject: string,
+	html: string,
+	logUrl?: string,
+) {
+	if (resend) {
+		const { error } = await resend.emails.send({
+			from: FROM,
+			to,
+			subject,
+			html,
 		});
-		if (error)
-			throw new Error(`Failed to send approval email: ${error.message}`);
-	}
-
-	async sendWaitlistConfirmationEmail(email: string): Promise<void> {
-		const { error } = await this.emailClient.emails.send({
-			from: 'Uppler <noreply@uplerr.com>',
-			to: email,
-			subject: "You're on the Uppler waitlist",
-			html: `
-				<p>Hi,</p>
-				<p>You're on the list. We're admitting users gradually and will send your invite as soon as your spot opens up.</p>
-				<p>In the meantime, feel free to reply to this email with any questions.</p>
-				<p>— The Uppler Team</p>
-			`,
-		});
-		if (error)
-			throw new Error(`Failed to send waitlist email: ${error.message}`);
-	}
-
-	async sendResetPasswordEmail(
-		fullName: string,
-		email: string,
-		url: string,
-	): Promise<void> {
-		const { error } = await this.emailClient.emails.send({
-			to: email,
-			template: {
-				id: EMAIL_TEMPLATE_ID.resetPassword,
-				variables: {
-					resetPasswordURL: url,
-					fullName: fullName,
-				},
-			},
-		});
-		if (error)
-			throw new Error(`Failed to send password reset email: ${error.message}`);
+		if (error) throw new Error(`Failed to send email: ${error.message}`);
+	} else {
+		console.log(
+			`[email] to=${to} subject="${subject}"${logUrl ? ` url=${logUrl}` : ''}`,
+		);
 	}
 }
 
-export const emailSender = new ProductEmail(
-	new Resend(process.env.RESEND_API_KEY ?? ''),
-);
+export const emailSender = {
+	async sendVerificationEmail(name: string, email: string, url: string) {
+		await send(
+			email,
+			'Verify your Uppler email',
+			`<p>Hi ${name},</p><p>Click the link below to verify your email address:</p><p><a href="${url}">${url}</a></p><p>— Uppler</p>`,
+			url,
+		);
+	},
+
+	async sendResetPasswordEmail(name: string, email: string, url: string) {
+		await send(
+			email,
+			'Reset your Uppler password',
+			`<p>Hi ${name},</p><p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${url}">${url}</a></p><p>If you didn't request this, you can safely ignore this email.</p><p>— Uppler</p>`,
+			url,
+		);
+	},
+};

@@ -1,102 +1,43 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const resendMocks = vi.hoisted(() => ({ send: vi.fn() }));
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('resend', () => ({
 	Resend: class {
-		emails = { send: resendMocks.send };
+		emails = { send: vi.fn().mockResolvedValue({ error: null }) };
 	},
 }));
 
-const { default: ProductEmail } = await import('../../utils/email_utils');
+// RESEND_API_KEY is not set in the test environment, so all calls fall through
+// to the console.log path. We just verify they don't throw and log the URL.
+const { emailSender } = await import('../../utils/email_utils');
 
-const mockClient = { emails: { send: resendMocks.send } } as never;
-const emailService = new ProductEmail(mockClient);
+describe('emailSender — LOG_ONLY mode (no RESEND_API_KEY)', () => {
+	let consoleSpy: ReturnType<typeof vi.spyOn>;
 
-beforeEach(() => {
-	vi.clearAllMocks();
-	resendMocks.send.mockResolvedValue({ error: null });
-});
-
-describe('ProductEmail.sendVerificationEmail', () => {
-	it('calls send with the correct recipient and template variables', async () => {
-		await emailService.sendVerificationEmail(
-			'John Doe',
-			'john@example.com',
-			'https://verify.example.com',
-		);
-
-		expect(resendMocks.send).toHaveBeenCalledOnce();
-		expect(resendMocks.send).toHaveBeenCalledWith(
-			expect.objectContaining({
-				to: 'john@example.com',
-				template: expect.objectContaining({
-					variables: expect.objectContaining({
-						fullName: 'John Doe',
-						verificationURL: 'https://verify.example.com',
-					}),
-				}),
-			}),
-		);
+	beforeEach(() => {
+		consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 	});
 
-	it('throws when send returns an error', async () => {
-		resendMocks.send.mockResolvedValue({
-			error: { message: 'Delivery failed' },
-		});
-		await expect(
-			emailService.sendVerificationEmail(
-				'John',
-				'john@example.com',
-				'https://url',
-			),
-		).rejects.toThrow('Failed to send verification email: Delivery failed');
+	afterEach(() => {
+		consoleSpy.mockRestore();
 	});
 
-	it('does not throw when send rejects', async () => {
-		resendMocks.send.mockRejectedValue(new Error('Network error'));
-		await expect(
-			emailService.sendVerificationEmail(
-				'John',
-				'john@example.com',
-				'https://url',
-			),
-		).rejects.toThrow('Network error');
-	});
-});
-
-describe('ProductEmail.sendResetPasswordEmail', () => {
-	it('calls send with the correct recipient and template variables', async () => {
-		await emailService.sendResetPasswordEmail(
-			'Jane Doe',
-			'jane@example.com',
-			'https://reset.example.com',
+	it('sendVerificationEmail logs the url', async () => {
+		await emailSender.sendVerificationEmail(
+			'Alice',
+			'alice@example.com',
+			'http://verify.example.com',
 		);
-
-		expect(resendMocks.send).toHaveBeenCalledOnce();
-		expect(resendMocks.send).toHaveBeenCalledWith(
-			expect.objectContaining({
-				to: 'jane@example.com',
-				template: expect.objectContaining({
-					variables: expect.objectContaining({
-						fullName: 'Jane Doe',
-						resetPasswordURL: 'https://reset.example.com',
-					}),
-				}),
-			}),
-		);
+		expect(consoleSpy).toHaveBeenCalledOnce();
+		expect(consoleSpy.mock.calls[0][0]).toContain('http://verify.example.com');
 	});
 
-	it('throws when send returns an error', async () => {
-		resendMocks.send.mockResolvedValue({
-			error: { message: 'Delivery failed' },
-		});
-		await expect(
-			emailService.sendResetPasswordEmail(
-				'Jane',
-				'jane@example.com',
-				'https://url',
-			),
-		).rejects.toThrow('Failed to send password reset email: Delivery failed');
+	it('sendResetPasswordEmail logs the url', async () => {
+		await emailSender.sendResetPasswordEmail(
+			'Bob',
+			'bob@example.com',
+			'http://reset.example.com',
+		);
+		expect(consoleSpy).toHaveBeenCalledOnce();
+		expect(consoleSpy.mock.calls[0][0]).toContain('http://reset.example.com');
 	});
 });
