@@ -13,8 +13,7 @@
 		"format": "prettier --write .",
 		"check": "eslint . && prettier --check .",
 		"test": "vitest run",
-		"test:ui": "vitest --ui",
-		"approve": "tsx --env-file=.env src/scripts/send-approval.ts"
+		"test:ui": "vitest --ui"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.98.1",

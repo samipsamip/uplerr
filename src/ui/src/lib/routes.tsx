@@ -13,7 +13,6 @@ import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import LoginPage from '@/pages/auth/LoginPage';
 import PasswordResetConfirmationPage from '@/pages/auth/PasswordResetConfirmationPage';
 import PasswordResetSuccessPage from '@/pages/auth/PasswordResetSuccessPage';
-import PendingApprovalPage from '@/pages/auth/PendingApprovalPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import SignupPage from '@/pages/auth/SignupPage';
 import SignupSuccessPage from '@/pages/auth/SignupSuccessPage';
@@ -46,16 +45,6 @@ const getSession = async () => {
 	}
 
 	_sessionCache = null;
-
-	if (res.status === 403) {
-		const body = await res
-			.json<{ code?: string }>()
-			.catch(() => ({ code: undefined }));
-		if (body.code === 'PENDING_APPROVAL') {
-			return 'PENDING_APPROVAL' as const;
-		}
-	}
-
 	return false;
 };
 
@@ -63,37 +52,21 @@ export const invalidateSessionCache = () => {
 	_sessionCache = null;
 };
 
-/**
- * / → decide initial landing page
- */
 const rootLoader = async () => {
 	const session = await getSession();
-	if (session === 'PENDING_APPROVAL') {
-		throw redirect('/pending-approval');
-	}
 	if (session) {
 		throw redirect('/dashboard');
 	}
 	throw redirect('/login');
 };
 
-/**
- * Protect private routes
- */
 const requireAuth = async () => {
 	const session = await getSession();
-	if (session === 'PENDING_APPROVAL') {
-		throw redirect('/pending-approval');
-	}
 	if (!session) {
 		throw redirect('/login');
 	}
 	return session;
 };
-
-/* ---------------------------------- */
-/* Layout                            */
-/* ---------------------------------- */
 
 function ProtectedLayout() {
 	return <Outlet context={useLoaderData()} />;
@@ -103,10 +76,6 @@ const publicRoutes: RouteObject[] = [
 	{
 		path: '/login',
 		Component: LoginPage,
-	},
-	{
-		path: '/pending-approval',
-		Component: PendingApprovalPage,
 	},
 	{
 		path: '/email-verified',
@@ -174,7 +143,7 @@ export const router = createBrowserRouter([
 	{
 		path: '/',
 		loader: rootLoader,
-		Component: () => null, // This component won't render since rootLoader will redirect
+		Component: () => null,
 	},
 
 	{

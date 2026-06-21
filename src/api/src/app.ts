@@ -7,7 +7,6 @@ import profileRoute from './components/profiles/profiles.route';
 import roadMapsRoute from './components/roadmaps/roadmaps.route';
 import scraperRoute from './components/scraper/scraper.route';
 import skillsRoute from './components/skills/skills.route';
-import waitlistRoute from './components/waitlist/waitlist.route';
 import { auth } from './lib/auth';
 import { factory } from './lib/factory';
 import { authMiddleWare } from './lib/middleware';
@@ -44,7 +43,6 @@ export function buildApp() {
 	app.route('/api/skills', skillsRoute);
 	app.route('/api/roadmaps', roadMapsRoute);
 	app.route('/api/scraper', scraperRoute);
-	app.route('/api/waitlist', waitlistRoute);
 	app.route('/api/admin', adminRoute);
 
 	app.use('*', async (c) => c.json({ message: 'Not Found' }, 404));

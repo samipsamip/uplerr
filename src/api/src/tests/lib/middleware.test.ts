@@ -25,7 +25,7 @@ const { authMiddleWare } = await import('../../lib/middleware');
 
 const fakeUser = { id: 'user-1', name: 'Test User' };
 const fakeSession = { token: 'tok-abc', userId: 'user-1' };
-const fakeProfile = { id: 'profile-1', is_approved: true };
+const fakeProfile = { id: 'profile-1', is_banned: false, ban_reason: null };
 
 const app = new Hono<{
 	Variables: {
@@ -86,27 +86,10 @@ describe('authMiddleWare — happy path', () => {
 	});
 });
 
-describe('authMiddleWare — pending approval', () => {
-	it('returns 403 with PENDING_APPROVAL code when is_approved is false', async () => {
-		dbMocks.selectReturn.mockResolvedValue([
-			{ ...fakeProfile, is_approved: false },
-		]);
-		const res = await app.request('/test');
-		expect(res.status).toBe(403);
-		const body = await res.json();
-		expect(body.code).toBe('PENDING_APPROVAL');
-	});
-});
-
 describe('authMiddleWare — banned user', () => {
 	it('returns 403 with the ban_reason when the profile is banned', async () => {
 		dbMocks.selectReturn.mockResolvedValue([
-			{
-				...fakeProfile,
-				is_approved: true,
-				is_banned: true,
-				ban_reason: 'Spam',
-			},
+			{ ...fakeProfile, is_banned: true, ban_reason: 'Spam' },
 		]);
 		const res = await app.request('/test');
 		expect(res.status).toBe(403);
@@ -117,7 +100,7 @@ describe('authMiddleWare — banned user', () => {
 
 	it('returns 403 with the default message when ban_reason is null', async () => {
 		dbMocks.selectReturn.mockResolvedValue([
-			{ ...fakeProfile, is_approved: true, is_banned: true, ban_reason: null },
+			{ ...fakeProfile, is_banned: true, ban_reason: null },
 		]);
 		const res = await app.request('/test');
 		expect(res.status).toBe(403);

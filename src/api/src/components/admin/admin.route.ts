@@ -5,7 +5,6 @@ import { adminTokensSchema } from '../../schemas/admin_tokens.schema';
 import { user } from '../../schemas/auth-schema';
 import { profileSchema } from '../../schemas/profiles.schema';
 import db from '../../utils/db';
-import { emailSender } from '../../utils/email_utils';
 
 const adminRoute = factory.createApp();
 
@@ -49,8 +48,8 @@ adminRoute.get('/users', async (c) => {
 			name: user.name,
 			email: user.email,
 			emailVerified: user.emailVerified,
-			isApproved: profileSchema.is_approved,
 			isBanned: profileSchema.is_banned,
+			banReason: profileSchema.ban_reason,
 			joinedAt: profileSchema.created_at,
 		})
 		.from(profileSchema)
@@ -60,35 +59,35 @@ adminRoute.get('/users', async (c) => {
 	return c.json(users);
 });
 
-adminRoute.patch('/users/:userId/approve', async (c) => {
+adminRoute.patch('/users/:userId/ban', async (c) => {
 	const userId = c.req.param('userId');
-
-	const [targetUser] = await db
-		.select({ name: user.name, email: user.email })
-		.from(user)
-		.where(eq(user.id, userId))
-		.limit(1);
-
-	if (!targetUser) {
-		return c.json({ message: 'User not found' }, 404);
-	}
+	const body = await c.req.json<{ reason?: string }>();
 
 	const [updated] = await db
 		.update(profileSchema)
-		.set({ is_approved: true })
+		.set({ is_banned: true, ban_reason: body.reason ?? null })
 		.where(eq(profileSchema.user_id, userId))
 		.returning({ id: profileSchema.id });
 
 	if (!updated) {
-		return c.json(
-			{ message: 'Profile not found — has the user verified their email?' },
-			404,
-		);
+		return c.json({ message: 'User not found' }, 404);
 	}
 
-	emailSender
-		.sendApprovalEmail(targetUser.name, targetUser.email)
-		.catch(() => {});
+	return c.json({ success: true });
+});
+
+adminRoute.patch('/users/:userId/unban', async (c) => {
+	const userId = c.req.param('userId');
+
+	const [updated] = await db
+		.update(profileSchema)
+		.set({ is_banned: false, ban_reason: null })
+		.where(eq(profileSchema.user_id, userId))
+		.returning({ id: profileSchema.id });
+
+	if (!updated) {
+		return c.json({ message: 'User not found' }, 404);
+	}
 
 	return c.json({ success: true });
 });

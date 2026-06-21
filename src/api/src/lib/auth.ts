@@ -18,33 +18,39 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,
-		requireEmailVerification: true,
+		requireEmailVerification: false,
 		sendResetPasswordEmail: true,
 		revokeSessionsOnPasswordReset: true,
 		sendResetPassword: async ({ user, url }) => {
 			void emailSender.sendResetPasswordEmail(user.name, user.email, url);
 		},
 	},
-	session: {
-		cookieCache: {
-			enabled: true,
-			maxAge: 5 * 60, // 5 minutes
-		},
-	},
-	rateLimit: {
-		window: 15 * 60 * 1000, // 15 minutes
-		max: 100, // limit each IP to 100 requests per windowMs
-	},
 	emailVerification: {
 		sendOnSignUp: true,
 		sendVerificationEmail: async ({ user, url }) => {
 			void emailSender.sendVerificationEmail(user.name, user.email, url);
 		},
-		afterEmailVerification: async ({ id, name }) => {
-			await db
-				.insert(profileSchema)
-				.values({ user_id: id, full_name: name })
-				.onConflictDoNothing();
+	},
+	databaseHooks: {
+		user: {
+			create: {
+				after: async (user) => {
+					await db
+						.insert(profileSchema)
+						.values({ user_id: user.id, full_name: user.name })
+						.onConflictDoNothing();
+				},
+			},
 		},
+	},
+	session: {
+		cookieCache: {
+			enabled: true,
+			maxAge: 5 * 60,
+		},
+	},
+	rateLimit: {
+		window: 15 * 60 * 1000,
+		max: 100,
 	},
 });
