@@ -1,33 +1,74 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: uppler
+      POSTGRES_USER: uppler
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uppler"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
       dockerfile: src/api/Dockerfile
-    volumes:
-      - ./src/api:/app/src/api
-      - ./src/types:/app/src/types
-      # prevent host node_modules from shadowing the container's
-      - /app/node_modules
-      - /app/src/api/node_modules
+    restart: unless-stopped
     environment:
-      - NODE_ENV=local
-    env_file:
-      - ./src/api/.env
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://uppler:${POSTGRES_PASSWORD}@postgres:5432/uppler
+      AUTH_BASE_URL: ${API_URL}
+      TRUSTED_ORIGINS: ${APP_URL},${WEBSITE_URL}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      BRAINTRUST_API_KEY: ${BRAINTRUST_API_KEY}
+      BRAINTRUST_PROJECT_ID: ${BRAINTRUST_PROJECT_ID}
+      BRAINTRUST_PROJECT_NAME: ${BRAINTRUST_PROJECT_NAME}
+      BRAINTRUST_SLUG_IS_VALID_RESUME: ${BRAINTRUST_SLUG_IS_VALID_RESUME}
+      BRAINTRUST_SLUG_CORE_RESUME_EXTRACTION: ${BRAINTRUST_SLUG_CORE_RESUME_EXTRACTION}
+      BRAINTRUST_SLUG_EXTRACT_SKILLS: ${BRAINTRUST_SLUG_EXTRACT_SKILLS}
+      BRAINTRUST_SLUG_RESUME_MODERATION: ${BRAINTRUST_SLUG_RESUME_MODERATION}
+      BRAINTRUST_SLUG_RESUME_PROJECTS_EXTRACTION: ${BRAINTRUST_SLUG_RESUME_PROJECTS_EXTRACTION}
+      BRAINTRUST_SLUG_JOB_DESCRIPTION_MODERATION: ${BRAINTRUST_SLUG_JOB_DESCRIPTION_MODERATION}
+      BRAINTRUST_SLUG_JOB_DESCRIPTION_SKILLS_EXTRACTION: ${BRAINTRUST_SLUG_JOB_DESCRIPTION_SKILLS_EXTRACTION}
+      BRAINTRUST_SLUG_ROADMAP_CURRICULUM: ${BRAINTRUST_SLUG_ROADMAP_CURRICULUM}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID}
+      CLOUDFLARE_ACCESS_KEY_ID: ${CLOUDFLARE_ACCESS_KEY_ID}
+      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY}
+      CLOUDFLARE_STORAGE_BUCKET: ${CLOUDFLARE_STORAGE_BUCKET}
     ports:
-      - "3000:3000"
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-  ui:
-    image: node:24-alpine
-    working_dir: /app
-    command: sh -c "corepack enable && corepack prepare pnpm@10.0.0 --activate && pnpm --filter @uppler/ui dev --host"
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/src/ui/node_modules
-      - /app/src/types/node_modules
-    env_file:
-      - ./src/ui/.env
+  app:
+    build:
+      context: .
+      dockerfile: src/ui/Dockerfile
+      args:
+        VITE_API_URL: ${API_URL}
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "3000:80"
     depends_on:
       - api
+
+  website:
+    build:
+      context: .
+      dockerfile: src/website/Dockerfile
+      args:
+        PUBLIC_API_URL: ${API_URL}
+    restart: unless-stopped
+    ports:
+      - "4000:80"
+
+volumes:
+  postgres_data:

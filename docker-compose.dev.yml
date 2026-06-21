@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: uppler
+      POSTGRES_USER: uppler
+      POSTGRES_PASSWORD: uppler
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uppler"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: node:24-alpine
+    working_dir: /app
+    command: >
+      sh -c "corepack enable && corepack prepare pnpm@10.0.0 --activate &&
+             pnpm install &&
+             pnpm --filter @uppler/api run db:generate &&
+             pnpm --filter @uppler/api run db:migrate &&
+             pnpm --filter @uppler/api run dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src/api/node_modules
+      - /app/src/types/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgres://uppler:uppler@postgres:5432/uppler
+    env_file:
+      - path: ./src/api/.env
+        required: false
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ui:
+    image: node:24-alpine
+    working_dir: /app
+    command: >
+      sh -c "corepack enable && corepack prepare pnpm@10.0.0 --activate &&
+             pnpm install &&
+             pnpm --filter @uppler/ui dev --host"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src/ui/node_modules
+      - /app/src/types/node_modules
+    env_file:
+      - path: ./src/ui/.env
+        required: false
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
