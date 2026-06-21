@@ -24,7 +24,7 @@ I started Uplerr as a project that I intended to make public and see if I could 
 ![Uplerr Roadmap View](image.png)
 
 **CV Review Page**
-![Profile Review Page](image-1.png)
+![Profile Review Page](image-3.png)
 
 **Skills & CV Page**
 ![Skills and CV Page](image-2.png)
